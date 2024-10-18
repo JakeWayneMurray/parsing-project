@@ -39,7 +39,7 @@ function App() {
     <a className="btn btn-ghost text-xl">Parsing Project</a>
   </div>
   <div className="navbar-end">
-    <a className="btn">Test Button</a>
+  <a className="btn primary" href="#" onClick={() => window.open('https://www.youtube.com/watch?v=FTsDqjp-Omw', '_blank')}> Light theme </a>
   </div>
 </div>
        <Parse />

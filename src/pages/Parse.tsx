@@ -1,56 +1,41 @@
 import React, { useState } from 'react';
-import type { Designer } from '../interfaces/Designer';
-import { parser } from '../utils/helperFunctions';
-import type { ActionSet } from '../interfaces/ActionSet';
+import { DesignerObject } from '../assets/DesignerObject';
+import SecondaryButton from '../components/SecondaryButton';
+import { extractActionSets, getActions } from '../utils/utils';
 
 export default function Settings() {
-  const [response, setResponse] = useState<null | Designer>(null);
+  const [response, setResponse] = useState(DesignerObject);
   const [showParsed, setShowParsed] = useState(false);
   const [outputBox, setOutputBox] = useState<string>('');
 
   const handleParseClick = () => {
-    const parsedResponse = parser();
-    if (!response) {
-      setResponse(parsedResponse);
-    }
+    let output = `Screen Name: ${response?.Data?.screen?.name}\n`;
+    output += `Modified By: ${response?.Data?.screen?.modifiedBy}\n`;
 
+    const foundActionSets = extractActionSets(response);
+    console.log('Found Action Sets:', foundActionSets); // Log found action sets
 
-    const actionSets = response?.Data?.screen?.actionSets;
-    const parsedActionSets: ActionSet[] = [];
-    if (actionSets && typeof actionSets === 'object') {
-      Object.keys(actionSets).forEach((guid) => {
+    Object.values(foundActionSets).forEach(actionSet => {
+        const actionSetWName = foundActionSets.find(a => a.ActionSetId === actionSet.ActionSetId);
+        output += `\n${actionSetWName ? actionSetWName.Name : '(Not found in parsed data)'}: \n`;
+
+        const actions = getActions(actionSet.ActionSetId, response);
+        console.log('Actions for ActionSetId:', actionSet.ActionSetId, actions); // Log the actions retrieved
+
+        if (!actions.length) {
+            output += `- No actions found for this action set.\n`;
+            return;
+        }
         
-        //parsedActionSets.push(actionSets[guid]);
-      });
-    }
-    const screenVersions = response?.Data?.versionList;
-    const parsedScreenVersions: string[] = [];
-    if (screenVersions && typeof screenVersions === 'object') {
-      Object.keys(screenVersions).forEach((guid) => {
-        //parsedScreenVersions.push(screenVersions[guid]);
-      });
-    }
-    let output = "Screen Name: " + parsedResponse?.Data.screen.name + "\n";
-    output += "Screen Version: " + parsedScreenVersions[parsedScreenVersions.length - 1] + "\n";
-    output += "Modified By: " + parsedResponse?.Data.screen.modifiedBy;
+        actions.forEach(action => {
+          //@ts-ignore
+            output += `- ${action.Type}\n`; // Removed extra '+' for clarity
+        });
+    });
 
-    parsedActionSets.map((p) => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-      parsedResponse?.Data.screen.controls
-      p.Actions.map(()=>{
-      console.log('This curly brace is unexpected due to a syntax error in the code.');
-      
-      })
-    })
-
-
-
-
-
-
-    setOutputBox(output)
+    setOutputBox(output);
     setShowParsed(true);
-  };
+};
 
   const handleCopyClick = () => {
     const parsedText = (document.getElementById('parsedCode') as HTMLTextAreaElement).value;
@@ -102,22 +87,20 @@ export default function Settings() {
             />
           </div>}
         {!showParsed ? (
-          <button
+          <SecondaryButton
             onClick={handleParseClick}
-            className="btn btn-secondary"
-          >
-            Parse Now
-          </button>
-        ) :
+            label="Parse Now"
+          />) :
           <div className="flex flex-row space-x-5">
 
-            <button
+            <SecondaryButton
               onClick={handleGoBackClick}
-              className="btn btn-primary"
-            >
-              Go Back
-            </button>
-            <button onClick={handleCopyClick} className="btn btn-primary">Copy Text</button>
+              label="Go Back"
+            />
+            <SecondaryButton
+              onClick={handleCopyClick}
+              label="Copy Text"
+            />
           </div>
 
 
