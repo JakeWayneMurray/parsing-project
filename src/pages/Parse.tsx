@@ -8,6 +8,7 @@ export default function Settings() {
   const [showParsed, setShowParsed] = useState(false);
   const [outputBox, setOutputBox] = useState<string>('');
 
+
   const handleParseClick = () => {
     let output = `Screen Name: ${response?.Data?.screen?.name}\n`;
     output += `Modified By: ${response?.Data?.screen?.modifiedBy}\n`;
