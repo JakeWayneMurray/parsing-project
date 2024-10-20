@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { DesignerObject } from '../assets/DesignerObject';
 import SecondaryButton from '../components/SecondaryButton';
-import { extractActionSets, getActions } from '../utils/utils';
+import { extractActionSets } from '../utils/utils';
 
 export default function Settings() {
-  const [response, setResponse] = useState(DesignerObject);
+  const [response] = useState(DesignerObject);
   const [showParsed, setShowParsed] = useState(false);
   const [outputBox, setOutputBox] = useState<string>('');
 
@@ -13,22 +13,11 @@ export default function Settings() {
     output += `Modified By: ${response?.Data?.screen?.modifiedBy}\n`;
 
     const foundActionSets = extractActionSets(response);
-    console.log('Found Action Sets:', foundActionSets); // Log found action sets
 
     Object.values(foundActionSets).forEach(actionSet => {
         const actionSetWName = foundActionSets.find(a => a.ActionSetId === actionSet.ActionSetId);
         output += `\n${actionSetWName ? actionSetWName.Name : '(Not found in parsed data)'}: \n`;
-
-        const actions = getActions(actionSet.ActionSetId, response);
-        console.log('Actions for ActionSetId:', actionSet.ActionSetId, actions); // Log the actions retrieved
-
-        if (!actions.length) {
-            output += `- No actions found for this action set.\n`;
-            return;
-        }
-        
-        actions.forEach(action => {
-          //@ts-ignore
+        actionSet.Actions?.forEach(action => {
             output += `- ${action.Type}\n`; // Removed extra '+' for clarity
         });
     });
@@ -64,23 +53,23 @@ export default function Settings() {
           <div className="flex space-x-4 mb-8 w-full">
             <div className="w-1/2">
               <textarea
-                className="w-full p-2 border border-gray-300 rounded-md"
+                className="w-full p-2 border border-gray-300 rounded-md text-sm"
                 placeholder="Enter old screen json here"
                 style={{ minHeight: '20vh', height: '50vh', resize: 'vertical' }}
               />
             </div>
             <div className="w-1/2">
               <textarea
-                className="w-full p-2 border border-gray-300 rounded-md"
+                className="w-full p-2 border border-gray-300 rounded-md text-sm"
                 placeholder="Enter new screen json here"
                 style={{ minHeight: '20vh', height: '50vh', resize: 'vertical' }}
               />
             </div>
           </div>)
-          : <div className="w-1/2">
+          : <div className="w-full">
             <textarea
               id="parsedCode"
-              className="w-full p-2 border border-gray-300 rounded-md"
+              className="w-full p-2 border border-gray-300 rounded-md text-sm"
               placeholder="Parsed code will appear here"
               style={{ minHeight: '20vh', height: '50vh', resize: 'vertical' }}
               value={outputBox}

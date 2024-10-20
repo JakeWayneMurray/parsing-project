@@ -1,87 +1,48 @@
-import { WhereClause } from '../interfaces/Actions/PrepareForAccounting';
-
 type ActionSet = {
     Name: string;
     ActionSetId: string;
-    Actions?: any[]; // Include actions in the ActionSet type
-    onClick?: string | null;
-    onFocus?: string | null;
-    onChange?: string | null;
-    onBlur?: string | null;
+    Actions?: any[];
 };
 
 type DesignerData = {
-    [key: string]: any; // General type for flexibility
+    Data: {
+        screen: {
+            actionSets: Record<string, any>;
+            events: Record<string, any>;
+            controls: any;
+        };
+    };
 };
-
-const constructName = (caption: string, onClick?: string | null, onFocus?: string | null, onChange?: string | null, onBlur?: string | null): string => {
-    const parts = [caption];
-
-    if (onClick) parts.push(' (OnClick)');
-    if (onFocus) parts.push(' (OnFocus)');
-    if (onChange) parts.push(' (OnChange)');
-    if (onBlur) parts.push(' (OnBlur)');
-
-    return parts.join(' ').trim();
-};
-
 export const extractActionSets = (obj: DesignerData): ActionSet[] => {
     const results: ActionSet[] = [];
-    const actionSets = obj?.Data?.screen?.actionSets || {}; // Get actionSets from the response
+    const actionSets = obj?.Data?.screen?.actionSets;
+    const eventsList = obj?.Data?.screen?.events;
+    const controls = obj?.Data?.screen?.controls;
 
-    const traverse = (value: any) => {
+    const traverse = (value: any, parentName?: string) => {
         if (value && typeof value === 'object') {
-            const actionSetId = value.ActionSetId || value.id; // Adjust as needed
-            const caption = value.caption || '';
+            const { onClick, onFocus, onChange, onBlur, caption } = value;
+            const eventMap = { onClick, onFocus, onChange, onBlur };
 
-            // Destructure the properties
-            const { onClick, onFocus, onChange, onBlur } = value;
+            Object.entries(eventMap).forEach(([eventType, eventId]) => {
+                if (eventId) {
+                    const realActionSetId = eventsList?.[eventId]?.[0];
+                    const actionSet = actionSets?.[realActionSetId];
 
-            // Check if we should add this action set
-            if (actionSetId && (caption || onClick || onFocus || onChange || onBlur)) {
-                // Get actions corresponding to the actionSetId
+                    if (actionSet) {
+                        results.push({
+                            Name: `${caption || parentName || 'Unnamed Action'} (${eventType})`,
+                            ActionSetId: realActionSetId || 'Unknown',
+                            Actions: actionSet?.Actions || [],
+                        });
+                    }
+                }
+            });
 
-                const actions = actionSets[actionSetId]?.Actions || []; // Retrieve actions
-
-                results.push({
-                    Name: constructName(caption, onClick, onFocus, onChange, onBlur),
-                    ActionSetId: actionSetId,
-                    Actions: [...actions], // Spread into a new array to avoid reference issues
-                    onClick: onClick || null,
-                    onFocus: onFocus || null,
-                    onChange: onChange || null,
-                    onBlur: onBlur || null,
-                });
-                console.log(actions)
-            }
-
-            // Recursively search through all properties
-            Object.values(value).forEach(traverse);
+            Object.values(value).forEach((e) => traverse(e, caption || parentName));
         }
     };
 
-    traverse(obj);
-    return results;
-};
-
-export const getActions = (actionSetId: string, obj: DesignerData) => {
-    const results: ActionSet[] = [];
-    const actionSets = obj?.Data?.screen?.actionSets || {}; // Ensure it's an object
-
-    // Log the actionSets to verify structure
-    console.log('actionSets:', actionSets);
-
-    // Convert actionSets object to an array and find the matching action set
-    //@ts-ignore
-    const actionSet = Object.values(actionSets).find(set => set.ActionSetId === actionSetId);
-
-    // Log the found actionSet
-    console.log('Found actionSet:', actionSet);
-
-    if (actionSet) {
-        //@ts-ignore
-        results.push(...actionSet.Actions); // Assuming Actions is an array
-    }
-
+    traverse(controls);
     return results;
 };
