@@ -1,4 +1,8 @@
 import { ConditionalStatement } from "../interfaces/Actions/ConditionalStatement";
+import { LoopThroughAttachments } from "../interfaces/Actions/LoopThroughAttachments";
+import { LoopThroughGrid } from "../interfaces/Actions/LoopThroughGrid";
+import { LoopThroughTable } from "../interfaces/Actions/LoopThroughTable";
+
 type ActionSet = {
     Name: string;
     ActionSetId: string;
@@ -27,12 +31,48 @@ export const parseActions = (response: any) => {
         actionSet.Actions?.forEach(action => {
             output += `${indent}- ${action.Type}\n`; // Output action type with indentation
             if (action.Type === "If...then") {
+                output += `${indent}{\n`;
+
                 const conditionalActionSet: ConditionalStatement = action;
                 if (conditionalActionSet.ActionSetOnTrue?.Actions) {
                     processActionSet(conditionalActionSet.ActionSetOnTrue, `${indent}  `); // Indent for true actions
                 }
                 if (conditionalActionSet.ActionSetOnFalse?.Actions) {
                     processActionSet(conditionalActionSet.ActionSetOnFalse, `${indent}  `); // Indent for false actions
+                }
+                output += `${indent}}\n`;
+            }
+            // New handling for Loop actions
+            if (action.Type === "Loop Through Attachments") {
+                const loopActionSet: LoopThroughAttachments = action;
+                // Check for nested actions
+                if (loopActionSet.LoopActionSet?.Actions) {
+                    output += `${indent}{`;
+                    processActionSet(loopActionSet.LoopActionSet, `${indent}    `); // Process nested actions
+                    output += `${indent}}`;
+
+                }
+            } else if (action.Type === "Loop Through Grid") {
+                const loopActionSet: LoopThroughGrid = action; // Cast to LoopThroughGrid
+                output += `${indent}  Grid ID: ${loopActionSet.GridId}\n`;
+                output += `${indent}  Only Checked Records: ${loopActionSet.OnlyCheckedRecords}\n`;
+                // Check for nested actions
+                if (loopActionSet.LoopActionSet?.Actions) {
+                    output += `${indent}{`;
+                    processActionSet(loopActionSet.LoopActionSet, `${indent}    `); // Process nested actions
+                    output += `${indent}}`;
+
+                }
+            } else if (action.Type === "Loop Through Table") {
+                const loopActionSet: LoopThroughTable = action; // Assuming LoopThroughTable is defined similarly
+                //@ts-ignore
+                output += `${indent}  Table ID: ${loopActionSet.RecordId}\n`;
+                // Check for nested actions
+                if (loopActionSet.LoopActionSet?.Actions) {
+                    output += `${indent}{`;
+                    processActionSet(loopActionSet.LoopActionSet, `${indent}    `); // Process nested actions
+                    output += `${indent}}`;
+
                 }
             }
         });
