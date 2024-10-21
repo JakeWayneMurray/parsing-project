@@ -4,7 +4,6 @@ import { NewEditInvoice } from '../assets/NewEditInvoices';
 import SecondaryButton from '../components/SecondaryButton';
 import { extractActionSets, parseActions, handleMessageParsing, handleCSVGeneration } from '../utils/utils';
 import Checkbox from '../components/Checkbox';
-import type { ConditionalStatement } from '../interfaces/Actions/ConditionalStatement';
 
 export default function Settings() {
   const [response] = useState(NewEditInvoice);
@@ -30,7 +29,8 @@ export default function Settings() {
 };
 
 const handleParseClick = () => {
-  const output = parseActions(response); // Call the utility function
+  const textAreaValue = (document.getElementById('oldScreenJson') as HTMLTextAreaElement).value;
+  const output = textAreaValue.trim() === '' ? parseActions(response) : parseActions(JSON.parse(textAreaValue));
   setOutputBox(output);
   setShowParsed(true);
 };
@@ -65,20 +65,24 @@ const handleParseClick = () => {
               <Checkbox label="Output to CSV" checked={outputToCSV} onChange={() => { onlyShowMessages ? setOutputToCSV(!outputToCSV) : alert('Only show messages are currently supported for csv output, please check that to continue') }} />
             </div>
             <div className="flex space-x-4 mb-8 w-full">
-              <div className="w-1/2">
+              <div className={!onlyShowMessages ? "w-1/2" : "w-full"}>
                 <textarea
+                  id="oldScreenJson"
                   className="w-full p-2 border border-gray-300 rounded-md text-sm"
-                  placeholder="Enter old screen json here"
+                  placeholder={!onlyShowMessages ? "Enter old screen json here" : "Enter screen json here"}
                   style={{ minHeight: '20vh', height: '50vh', resize: 'vertical' }}
                 />
               </div>
+              {!onlyShowMessages ? 
               <div className="w-1/2">
                 <textarea
+                  id="newScreenJson"
                   className="w-full p-2 border border-gray-300 rounded-md text-sm"
                   placeholder="Enter new screen json here"
                   style={{ minHeight: '20vh', height: '50vh', resize: 'vertical' }}
                 />
-              </div>
+              </div> : null
+        }
             </div>
           </>)
           : <div className="w-full">
