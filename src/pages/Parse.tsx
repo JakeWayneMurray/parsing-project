@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 //import { DesignerObject } from '../assets/DesignerObject';
 import { NewEditInvoice } from '../assets/NewEditInvoices';
 import SecondaryButton from '../components/SecondaryButton';
-import { extractActionSets, extractShowMessageActionSets } from '../utils/utils';
+import { extractActionSets, extractShowMessageActionSets, handleMessageParsing, handleCSVGeneration } from '../utils/utils';
 import Checkbox from '../components/Checkbox';
+import type { ConditionalStatement } from '../interfaces/Actions/ConditionalStatement';
+import type { ActionSet } from '../interfaces/ActionSet';
 
 export default function Settings() {
   const [response] = useState(NewEditInvoice);
@@ -12,85 +14,59 @@ export default function Settings() {
   const [onlyShowMessages, setOnlyShowMessages] = useState(false);
   const [outputToCSV, setOutputToCSV] = useState(false);
 
-
   const handleShowMessageParseClick = () => {
     let output = `Screen Name: ${response?.Data?.screen?.name}\n`;
     output += `Modified By: ${response?.Data?.screen?.modifiedBy}\n`;
 
-    const foundActionSets = extractShowMessageActionSets(response);
-
-    // Filter out action sets that do not have any actions
-    //@ts-ignore
-    const filteredActionSets = foundActionSets.filter(actionSet => actionSet.Actions.length > 0);
+    const foundActionSets = extractActionSets(response);
+    const filteredActionSets = foundActionSets.filter(actionSet => actionSet.Actions && actionSet.Actions.length > 0);
 
     if (!outputToCSV) {
-      filteredActionSets.forEach(actionSet => {
-        output += `\n${actionSet.Name}: \n`;
-        //@ts-ignore
-        actionSet.Actions.forEach(action => {
-          output += `  Title: ${action.Title || '(No title)'}\n`;
-          output += `  Body: ${action.Message || '(No message)'}\n`;
-          output += `  Buttons: ${action.Buttons || '(No buttons)'}\n`;
-          output += `  Comments: ${action.Notes || '(No comments)'}\n`;
-        });
-      });
-
-      setOutputBox(output);
-      setShowParsed(true);
-      return;
+        // Call the function to handle message parsing
+        handleMessageParsing(filteredActionSets, output, setOutputBox, setShowParsed);
+    } else {
+        // Call the function to generate CSV content
+        handleCSVGeneration(filteredActionSets);
     }
-    
-    // Generate CSV content
-    let csvContent = "ActionSet,Title,Body,Buttons,Comments\n";
-
-    filteredActionSets.forEach(actionSet => {
-      actionSet?.Actions?.forEach(action => {
-        const title = action.Title || '(No title)';
-        const body = action.Message || '(No message)';
-        const buttons = action.Buttons || '(No buttons)';
-        const comments = action.Notes || '(No comments)';
-
-        csvContent += `"${actionSet.Name}","${title}","${body}","${buttons}","${comments}"\n`;
-      });
-    });
-
-    // Create a Blob from the CSV content
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-
-    // Create a URL for the Blob
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', 'parsed_data.csv');
-
-    // Append the link to the body
-    document.body.appendChild(link);
-    link.click(); // Trigger the download
-    document.body.removeChild(link); // Remove the link from the DOM
-
-  };
-
-
+};
 
 
   const handleParseClick = () => {
     let output = `Screen Name: ${response?.Data?.screen?.name}\n`;
     output += `Modified By: ${response?.Data?.screen?.modifiedBy}\n`;
 
-
     const foundActionSets = extractActionSets(response);
+    //@ts-ignore
+    const processActionSet = (actionSet, indent: string) => {
+        output += `${indent}${actionSet.Name || '(Unnamed Action Set)'}: \n`;
+    //@ts-ignore
+
+        actionSet.Actions?.forEach(action => {
+            output += `${indent}- ${action.Type}\n`; // Output action type with indentation
+            if (action.Type === "If...then") {
+                const conditionalActionSet: ConditionalStatement = action;
+                if (conditionalActionSet.ActionSetOnTrue?.Actions) {
+                    processActionSet(conditionalActionSet.ActionSetOnTrue, `${indent}  `); // Indent for true actions
+                }
+                if (conditionalActionSet.ActionSetOnFalse?.Actions) {
+                    processActionSet(conditionalActionSet.ActionSetOnFalse, `${indent}  `); // Indent for false actions
+                }
+            }
+        });
+    };
 
     Object.values(foundActionSets).forEach(actionSet => {
-      const actionSetWName = foundActionSets.find(a => a.ActionSetId === actionSet.ActionSetId);
-      output += `\n${actionSetWName ? actionSetWName.Name : '(Not found in parsed data)'}: \n`;
-      actionSet.Actions?.forEach(action => {
-        output += `- ${action.Type}\n`; // Removed extra '+' for clarity
-      });
+        const actionSetWName = foundActionSets.find(a => a.ActionSetId === actionSet.ActionSetId);
+        if (actionSetWName) {
+            processActionSet(actionSetWName, ''); // Start processing with no indentation
+        } else {
+            output += `\n(Not found in parsed data): \n`;
+        }
     });
 
     setOutputBox(output);
     setShowParsed(true);
-  };
+};
 
   const handleCopyClick = () => {
     const parsedText = (document.getElementById('parsedCode') as HTMLTextAreaElement).value;
