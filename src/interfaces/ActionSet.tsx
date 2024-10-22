@@ -8,3 +8,10 @@ export interface ActionSet {
     Notes:        string;
     IsInAppStore: boolean;
 }
+
+
+export type SimplifiedActionSet = {
+    Name: string;
+    ActionSetId: string;
+    Actions?: any[];
+};

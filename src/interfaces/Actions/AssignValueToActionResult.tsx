@@ -1,6 +1,6 @@
 export interface AssignValueToActionResult {
     Type:                   string;
-    AssignValueToActions:   AssignValueToAction[];
+    AssignValueToActions:   AssignValueToActions[];
     IgnoreLogging:          boolean;
     IsAppRoutineInputValue: boolean;
     Notes:                  string;
@@ -11,7 +11,7 @@ export interface AssignValueToActionResult {
     Metadata:               null;
 }
 
-export interface AssignValueToAction {
+export interface AssignValueToActions {
     Source:             Source;
     ActionResultId:     string;
     IsSharedResult:     boolean;

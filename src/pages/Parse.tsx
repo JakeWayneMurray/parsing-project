@@ -1,39 +1,41 @@
 import React, { useState } from 'react';
-//import { DesignerObject } from '../assets/DesignerObject';
 import { NewEditInvoice } from '../assets/NewEditInvoices';
 import SecondaryButton from '../components/SecondaryButton';
-import { extractActionSets, parseActions, handleMessageParsing, handleCSVGeneration } from '../utils/utils';
 import Checkbox from '../components/Checkbox';
+import { useDesigner } from '../providers/DesignerContext';
 
-export default function Settings() {
+export default function Parse() {
   const [response] = useState(NewEditInvoice);
+  const { setDesigner, extractActionSets, parseActions, handleMessageParsing, handleCSVGeneration, } = useDesigner();
   const [showParsed, setShowParsed] = useState(false);
   const [outputBox, setOutputBox] = useState<string>('');
   const [onlyShowMessages, setOnlyShowMessages] = useState(false);
   const [outputToCSV, setOutputToCSV] = useState(false);
 
+  const handleParseClick = () => {
+    const textAreaValue = (document.getElementById('oldScreenJson') as HTMLTextAreaElement).value;
+    //@ts-ignore
+    textAreaValue.trim() === '' ? setDesigner(NewEditInvoice) : setDesigner(JSON.parse(textAreaValue));
+    const output = parseActions();
+    setOutputBox(output);
+    setShowParsed(true);
+  };
+
   const handleShowMessageParseClick = () => {
+    const textAreaValue = (document.getElementById('oldScreenJson') as HTMLTextAreaElement).value;
+    //@ts-ignore
+    textAreaValue.trim() === '' ? setDesigner(NewEditInvoice) : setDesigner(JSON.parse(textAreaValue));
     let output = `Screen Name: ${response?.Data?.screen?.name}\n`;
     output += `Modified By: ${response?.Data?.screen?.modifiedBy}\n`;
-
-    const foundActionSets = extractActionSets(response);
+    const foundActionSets = extractActionSets();
     const filteredActionSets = foundActionSets.filter(actionSet => actionSet.Actions && actionSet.Actions.length > 0);
 
     if (!outputToCSV) {
-        // Call the function to handle message parsing
-        handleMessageParsing(filteredActionSets, output, setOutputBox, setShowParsed);
+      handleMessageParsing(filteredActionSets, output, setOutputBox, setShowParsed);
     } else {
-        // Call the function to generate CSV content
-        handleCSVGeneration(filteredActionSets);
+      handleCSVGeneration(filteredActionSets);
     }
-};
-
-const handleParseClick = () => {
-  const textAreaValue = (document.getElementById('oldScreenJson') as HTMLTextAreaElement).value;
-  const output = textAreaValue.trim() === '' ? parseActions(response) : parseActions(JSON.parse(textAreaValue));
-  setOutputBox(output);
-  setShowParsed(true);
-};
+  };
 
   const handleCopyClick = () => {
     const parsedText = (document.getElementById('parsedCode') as HTMLTextAreaElement).value;
@@ -73,18 +75,19 @@ const handleParseClick = () => {
                   style={{ minHeight: '20vh', height: '50vh', resize: 'vertical' }}
                 />
               </div>
-              {!onlyShowMessages ? 
-              <div className="w-1/2">
-                <textarea
-                  id="newScreenJson"
-                  className="w-full p-2 border border-gray-300 rounded-md text-sm"
-                  placeholder="Enter new screen json here"
-                  style={{ minHeight: '20vh', height: '50vh', resize: 'vertical' }}
-                />
-              </div> : null
-        }
+              {!onlyShowMessages ?
+                <div className="w-1/2">
+                  <textarea
+                    id="newScreenJson"
+                    className="w-full p-2 border border-gray-300 rounded-md text-sm"
+                    placeholder="Enter new screen json here"
+                    style={{ minHeight: '20vh', height: '50vh', resize: 'vertical' }}
+                  />
+                </div> : null
+              }
             </div>
           </>)
+
           : <div className="w-full">
             <textarea
               id="parsedCode"
@@ -111,8 +114,6 @@ const handleParseClick = () => {
               label="Copy Text"
             />
           </div>
-
-
         }
       </div>
     </div>

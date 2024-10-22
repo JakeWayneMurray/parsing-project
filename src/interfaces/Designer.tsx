@@ -7,6 +7,15 @@ export interface Designer {
     Status:    number;
 }
 
+export type SimplifiedDesigner = {
+    Data: {
+        screen: {
+            actionSets: Record<string, any>;
+            events: Record<string, any>;
+            controls: any;
+        };
+    };
+};
 export interface Data {
     screen:      Screen;
     versionList: VersionList;
