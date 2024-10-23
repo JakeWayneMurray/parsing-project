@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NewEditInvoice } from '../assets/NewEditInvoices';
 import SecondaryButton from '../components/SecondaryButton';
 import Checkbox from '../components/Checkbox';
@@ -15,16 +15,17 @@ export default function Parse() {
   const handleParseClick = () => {
     const textAreaValue = (document.getElementById('oldScreenJson') as HTMLTextAreaElement).value;
     //@ts-ignore
-    textAreaValue.trim() === '' ? setDesigner(NewEditInvoice) : setDesigner(JSON.parse(textAreaValue));
-    const output = parseActions();
-    setOutputBox(output);
+    const newDesignerState = textAreaValue.trim() === '' ? NewEditInvoice : JSON.parse(textAreaValue);
+    setDesigner(newDesignerState);
+    // Trigger parsing after state has been updated
     setShowParsed(true);
   };
 
   const handleShowMessageParseClick = () => {
     const textAreaValue = (document.getElementById('oldScreenJson') as HTMLTextAreaElement).value;
     //@ts-ignore
-    textAreaValue.trim() === '' ? setDesigner(NewEditInvoice) : setDesigner(JSON.parse(textAreaValue));
+    const newDesignerState = textAreaValue.trim() === '' ? NewEditInvoice : JSON.parse(textAreaValue);
+    setDesigner(newDesignerState);
     let output = `Screen Name: ${response?.Data?.screen?.name}\n`;
     output += `Modified By: ${response?.Data?.screen?.modifiedBy}\n`;
     const foundActionSets = extractActionSets();
@@ -52,6 +53,14 @@ export default function Parse() {
   const handleGoBackClick = () => {
     setShowParsed(false);
   }
+
+  // Add this useEffect to handle parsing when designer state changes
+  useEffect(() => {
+    if (showParsed) {
+      const output = parseActions();
+      setOutputBox(output);
+    }
+  }, [showParsed, parseActions]); // Add parseActions to dependencies
 
   return (
     <div className="flex items-center justify-center h-screen w-screen px-4">
