@@ -20,6 +20,7 @@ export default function Parse() {
     // Trigger parsing after state has been updated
     setShowParsed(true);
   };
+  
 
   const handleShowMessageParseClick = () => {
     const textAreaValue = (document.getElementById('oldScreenJson') as HTMLTextAreaElement).value;

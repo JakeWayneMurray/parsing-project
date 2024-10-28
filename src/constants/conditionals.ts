@@ -1,3 +1,8 @@
+export function getConditinoalType(value: number | null): string{
+    if(!value) return "ERROR";
+    return ConditionTypes[value];
+}
+
 export const ConditionTypes: string[] = [
     "Is Equal",
     "Is Not Equal",

@@ -3,7 +3,6 @@ import React, { createContext, useContext, useState } from 'react';
 import { LoopThroughAttachments } from "../interfaces/Actions/LoopThroughAttachments";
 import { LoopThroughGrid } from "../interfaces/Actions/LoopThroughGrid";
 import { Designer } from "../interfaces/Designer";
-import { SimplifiedActionSet } from '../interfaces/ActionSet';
 import { LoopThroughTable } from '../interfaces/Actions/LoopThroughTable';
 import { AddAttachmentToRecordID } from "../interfaces/Actions/AddAttachmentToRecordID";
 import { AssignValueToActionResult } from "../interfaces/Actions/AssignValueToActionResult";
@@ -49,6 +48,7 @@ import { UpdateControlsOnScreen } from "../interfaces/Actions/UpdateControlsOnSc
 import { UpdateEditableGridReadOnlyProperty } from "../interfaces/Actions/UpdateEditableGridReadOnlyProperty";
 import { UpdateFieldsInTable } from "../interfaces/Actions/UpdateFieldsInTable";
 import { SimplifiedDesigner } from '../interfaces/Designer';
+import { SimplifiedActionSet } from './ActionSet';
 
 export interface DesignerContextType {
     designer: Designer | null;
@@ -102,12 +102,16 @@ export interface DesignerContextType {
         UpdateEditableGridReadOnlyProperty | 
         UpdateFieldsInTable | 
         null;
-    getActionOutput: (action: any) => string;
     parseActions: () => string;
     extractActionSets: () => SimplifiedActionSet[];
     isValidUUID: (value: string | null | undefined | number) => boolean;
-    extractActionResultName: (actionResultID: string | null | undefined | number) => string;
+    getActionResultName: (actionResultID: string | null | undefined | number) => string;
     extractShowMessageActionSets: () => SimplifiedActionSet[];
     handleMessageParsing: (filteredActionSets: any, output: string, setOutputBox: (ouptut: string) => void, setShowParsed: (output: boolean) => void) => void;
     handleCSVGeneration: (filteredActionSets: any) => void;
+    simplifiedActionSets:  SimplifiedActionSet[] | null;
+    getControlName (controlID: string | null | undefined): string;
+    getCallRoutineActionName(actionsetId: string): string;
+    getActionOutput(action: any): string;
+
 }

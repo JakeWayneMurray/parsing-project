@@ -12,7 +12,7 @@ import { EnableDisableControls } from "../interfaces/Actions/EnableDisableContro
 import { ExpandCollapseSection } from "../interfaces/Actions/ExpandCollapseSection";
 import { SaveAll } from "../interfaces/Actions/SaveAll";
 import { SetFocusToControl } from "../interfaces/Actions/SetFocusToControl";
-import { SetViewFilter } from "../interfaces/Actions/SetViewFilter";
+import { SetViewFilter } from '../interfaces/Actions/SetViewFilter';
 import { ShowHideControls } from "../interfaces/Actions/ShowHideControls";
 import { ShowRightPanel } from "../interfaces/Actions/ShowRightPanel";
 import { StopProcessingMoreActions } from "../interfaces/Actions/StopProcessingMoreActions";
@@ -48,22 +48,32 @@ import { UpdateControlsOnScreen } from "../interfaces/Actions/UpdateControlsOnSc
 import { UpdateEditableGridReadOnlyProperty } from "../interfaces/Actions/UpdateEditableGridReadOnlyProperty";
 import { UpdateFieldsInTable } from "../interfaces/Actions/UpdateFieldsInTable";
 import { DesignerContextType } from '../interfaces/DesignerContextInterface';
+import { TextFunctionType } from '../constants/textFunctionTypes';
+import { PermissionTypes } from '../constants/permission';
+import { getConditinoalType } from '../constants/conditionals';
+import { DateFunctiontypes } from '../constants/dateFunctionTypes';
+import { ReportTypes } from '../constants/reportType';
+import { MathFunctionTypes, MathFunctionExpressions } from '../constants/mathFunctionTypes';
+import { ProcessPaymentTypes } from '../constants/processPaymentTypes';
+import { getViewFilterOutput } from '../utils/utils';
+
 
 const DesignerContext = createContext<DesignerContextType | undefined>(undefined);
 
 export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [designer, setDesigner] = useState<Designer | null>(null);
+    const [simplifiedActionSets, setSimplifiedActionSet] = useState<SimplifiedActionSet[]>([]); // Changed from SimplifiedActionSet | [] to SimplifiedActionSet[]
 
     function getWhereClauseOutput(action: LoopThroughTable | DeleteRecordsFromTable | RetrieveValuesFromTable | PrepareForAccounting): string {
         let output = "Where ";
         let whereArray = action.WhereClause;
         whereArray.forEach(where => {
-            output += isValidUUID(where.Source?.Value) ? extractActionResultName(where.Source?.Value) : where.Source?.Value + "\n";
-            output += where.Source?.Value
+            output += isValidUUID(where.Source?.Value) ? getActionResultName(where.Source?.Value) : where.Source?.Value + "\n";
         });
 
         return output;
     }
+
 
 
     function getActionByType(action: any):
@@ -214,203 +224,314 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
 
     function getActionOutput(action: any): string {
+
         let output = ""
         let typedAction;
         switch (action.Type) {
             case "Loop Through Attachments":
                 typedAction = action as LoopThroughAttachments;
                 output += "Metadata: " + typedAction.Metadata + "\n";
-
                 return output;
+
             case "Loop Through Grid":
                 typedAction = action as LoopThroughGrid;
-                output += typedAction.Type + "\n";
                 output += "Grid: " + typedAction.GridView + "\n";
+                output += "Only checked: " + (typedAction.OnlyCheckedRecords ? "true" : "false");
                 return output;
+
             case "Loop Through Table":
                 typedAction = action as LoopThroughTable;
-                //output += "Where: " + typedAction. + "\n";
-
-                output += typedAction.Type + "\n";
+                output += "Table:" + typedAction.ViewNameFriendly + "\n";
+                output += "Where: " + getWhereClauseOutput(typedAction) + "\n";
                 return output;
+
             case "Add Attachment To Record ID":
                 typedAction = action as AddAttachmentToRecordID;
-                output += typedAction.Type + "\n";
+                output += "Table: " + typedAction.ViewNameFriendly + "\n";
                 return output;
+
             case "Assign Value To Action Result":
                 typedAction = action as AssignValueToActionResult;
-                output += typedAction.Type + "\n";
+                typedAction.AssignValueToActions.forEach((assignValue) => {
+                    output += (isValidUUID(assignValue.Source.Value) ? getActionResultName(assignValue.Source.Value) : assignValue.Source.Value) + " -> " + action.ActionResultName + "\n";
+                })
                 return output;
+
             case "Call Web Service":
                 typedAction = action as CallWebService;
-                output += typedAction.Type + "\n";
                 return output;
+
             case "Clear Screen For New Entry":
                 typedAction = action as ClearScreenForNewEntry;
-                output += typedAction.Type + "\n";
                 return output;
+
             case "Enable Disable Controls":
                 typedAction = action as EnableDisableControls;
-                output += typedAction.Type + "\n";
+                typedAction.ControlsToUpdate.forEach((control) => {
+                    output += getControlName(control.ControlId) + " -> " +
+                        (control.ToggleOptions === 1 ? "Enabled" : "Disabled") + "\n";
+                })
+
                 return output;
+
             case "Expand Collapse Section":
                 typedAction = action as ExpandCollapseSection;
-                output += typedAction.Type + "\n";
+                typedAction.ControlsToUpdate.forEach((control) => {
+                    output += getControlName(control.ControlId) + " -> " +
+                        (control.ToggleOptions === 1 ? "Expanded" : "Collapsed") + "\n";
+                })
                 return output;
+
             case "Save All":
                 typedAction = action as SaveAll;
-                output += typedAction.Type + "\n";
                 return output;
+
             case "Set Focus To Control":
                 typedAction = action as SetFocusToControl;
-                output += typedAction.Type + "\n";
+                output += "Set Focus to " + getControlName(typedAction.ControlId) + "\n";
                 return output;
+
             case "Set View Filter":
                 typedAction = action as SetViewFilter;
-                output += typedAction.Type + "\n";
+                output += typedAction + getViewFilterOutput(action) + "\n";
                 return output;
+
             case "Show Hide Controls":
                 typedAction = action as ShowHideControls;
-                output += typedAction.Type + "\n";
+                typedAction.ControlsToUpdate.forEach((control) => {
+                    output += getControlName(control.ControlId) + " -> " +
+                        (control.ToggleOptions === 1 ? "Show" : "Hide") + "\n";
+                })
                 return output;
+
             case "Show Right Panel":
                 typedAction = action as ShowRightPanel;
-                output += typedAction.Type + "\n";
                 return output;
+
             case "Stop Processing More Actions":
                 typedAction = action as StopProcessingMoreActions;
-                output += typedAction.Type + "\n";
                 return output;
+
             case "Validate Controls On Screen":
                 typedAction = action as ValidateControlsOnScreen;
-                output += typedAction.Type + "\n";
+                typedAction.ControlsToValidate.forEach((control) => {
+                    output += getControlName(control.ControlId);
+                })
+
                 return output;
             case "Assign Value To Shared Result":
                 typedAction = action as AssignValueToSharedResult;
-                output += typedAction.Type + "\n";
+                typedAction.AssignValueToActions.forEach((action) => {
+                    output += action.Source.Value + " -> " + action.ActionResultName + "\n";
+                    ;
+                })
                 return output;
+
             case "Calculate Currency Conversion":
                 typedAction = action as CalculateCurrencyConversion;
-                output += typedAction.Type + "\n";
+                output += typedAction.Value.Value
                 return output;
+
+            //TODO: Expand the functionality    
             case "Call Routine":
                 typedAction = action as CallRoutine;
-                output += typedAction.Type + "\n";
+                output += getCallRoutineActionName(typedAction.ActionSetId);
                 return output;
+
+            //TODO: Expand the functionality  
             case "Character Functions":
                 typedAction = action as CharacterFunctions;
-                output += typedAction.Type + "\n";
+                output += TextFunctionType[typedAction.TextFunctionType] + "\n";
+                output += typedAction.Notes + "\n";
                 return output;
+
+            //TODO: Get the AppId's     
             case "Check Permission":
                 typedAction = action as CheckPermission;
-                output += typedAction.Type + "\n";
+                output += typedAction.AppId + PermissionTypes[typedAction.Permission] + " permission for " + typedAction.User?.Value + "\n";
+                output += "comments: " + typedAction.Notes + "\n";
                 return output;
+
             case "If...then":
                 typedAction = action as ConditionalStatement;
-                output += typedAction.Type + "\n";
+                typedAction.ExpressionList.forEach((expression) => {
+                    output += "if " + expression.Source?.Value + " " + getConditinoalType(expression.Operation) + " " + action.ActionResultName + "\n";
+                    ;
+                })
                 return output;
+
             case "Create Short Method URL":
                 typedAction = action as CreateShortMethodURL;
-                output += typedAction.Type + "\n";
+                output += "created for " + typedAction.ScreenId + " -> " + typedAction.ResultToSet + "\n";
+                output += "Comments: " + typedAction.Notes + "\n";
                 return output;
+
+            //TODO: Expand the functionality  
             case "Date Functions":
                 typedAction = action as DateFunctions;
-                output += typedAction.Type + "\n";
+                output += DateFunctiontypes[typedAction.DateFunctionType] + "-> " + "\n";
                 return output;
+
             case "Delete Records From Table":
                 typedAction = action as DeleteRecordsFromTable;
-                output += typedAction.Type + "\n";
+                output += typedAction.ViewNameFriendly + "\n";
+                output += getWhereClauseOutput(typedAction) + "\n";
                 return output;
+
             case "Generate Report":
                 typedAction = action as GenerateReport;
-                output += typedAction.Type + "\n";
+                output += typedAction.ReportName + "in " + ReportTypes[typedAction.ReportType] + "format \n";
                 return output;
+
             case "Go To Screen":
                 typedAction = action as GoToScreen;
-                output += typedAction.Type + "\n";
+                output += "Go to " + typedAction.ScreenId + "\n";
+                output += "Comments: " + typedAction.Notes + "\n";
                 return output;
+
             case "Go To Webpage":
                 typedAction = action as GoToWebpage;
-                output += typedAction.Type + "\n";
+                output += "Webpage: " + typedAction + "\n";
+                output += "Comments: " + typedAction.Notes + "\n";
                 return output;
+
             case "Insert Records Into Table":
                 typedAction = action as InsertRecordsIntoTable;
-                output += typedAction.Type + "\n";
+
+                output += "Table:" + typedAction.ViewNameFriendly + "\n";
+                typedAction.Fields.forEach((field) => {
+                    output += field.Field + " -> " + getActionResultName(field.Source.Value) + "\n";
+                    ;
+                })
                 return output;
+
+            //TODO: Expand the functionality  
             case "Mapping Functions":
                 typedAction = action as MappingFunctions;
-                output += typedAction.Type + "\n";
+                output += "Comments: " + typedAction.Notes + "\n";
                 return output;
+
+            //TODO: Expand the functionality  
             case "Math Functions":
                 typedAction = action as MathFunctions;
-                output += typedAction.Type + "\n";
+                output += MathFunctionTypes[typedAction.MathFunctionType] + "\n";
+                output += (typedAction.Values[0] ? typedAction.Values[0] : "NAN") + MathFunctionExpressions[typedAction.MathFunctionType] + (typedAction.Values[1] ? typedAction.Values[1] : "NAN")
                 return output;
+
             case "Merge Entities Contacts":
                 typedAction = action as MergeEntitiesContacts;
-                output += typedAction.Type + "\n";
+                output += "From RecordID: " + typedAction.FromRecordID;
+                output += "To RecordID: " + typedAction.ToRecordID;
+                output += "Comments: " + typedAction.Notes + "\n";
                 return output;
+
             case "Prepare For Accounting":
                 typedAction = action as PrepareForAccounting;
-                output += typedAction.Type + "\n";
+                output += typedAction.ViewNameFriendly + "\n";
+                output += getWhereClauseOutput(typedAction) + "\n";
+                output += "Override sync: " + (typedAction.SyncOverride ? "true" : "false") + "\n";
                 return output;
+
             case "Process Payment":
                 typedAction = action as ProcessPayment;
-                output += typedAction.Type + "\n";
+                output += "Type: " + ProcessPaymentTypes[typedAction.ActionType] + "\n";
+                output += "Entity recordID: " + typedAction.EntityId + "\n";
+                output += "Amount: " + typedAction.Amount + "\n";
+                output += "Response -> " + typedAction.ActionResultGatewayResponse.ActionResultName + "\n";
+                output += "Process successful -> " + typedAction.ActionResultSuccessOrFail.ActionResultName + "\n";
+                output += "Reference # -> " + typedAction.ActionResultReferenceNumber.ActionResultName + "\n";
                 return output;
+
             case "Refresh Control":
                 typedAction = action as RefreshControl;
-                output += typedAction.Type + "\n";
+                typedAction.ControlsToRefresh.forEach((control) => {
+                    output += getControlName(control.ControlId) + "\n";
+                })
                 return output;
+
+            //TODO: Expand the functionality      
             case "Retrieve Exchange Rate":
                 typedAction = action as RetrieveExchangeRate;
-                output += typedAction.Type + "\n";
+                output += "Comments: " + typedAction.Notes + "\n";
                 return output;
             case "Retrieve Value From Email Gadget":
                 typedAction = action as RetrieveValueFromEmailGadget;
-                output += typedAction.Type + "\n";
+                typedAction.Bindings.forEach((binding) => {
+                    output += binding.ValueName + " -> " + (binding.UpdateControl ? getControlName(binding.ControlToUpdate) : binding.ResultToSet.ActionResultName) + "\n";
+                })
                 return output;
             case "Retrieve Values From Table":
                 typedAction = action as RetrieveValuesFromTable;
-                output += typedAction.Type + "\n";
+                output += "Table: " + typedAction.ViewNameFriendly + "\n";
+                output += getWhereClauseOutput(typedAction);
+                typedAction.Bindings.forEach((binding) => {
+                    output += binding.FieldName + " -> " + (binding.UpdateControl ? getControlName(binding.ControlToUpdate) : binding.ResultToSet.ActionResultName) + "\n";
+                })
                 return output;
+
             case "Send Email":
                 typedAction = action as SendEmail;
-                output += typedAction.Type + "\n";
+                output += "Senders Email Address: " + typedAction.From.Value + "\n";
+                output += "Senders Name: " + typedAction.FromName.Value + "\n";
+                output += "Contact RecordID: " + typedAction.ContactRecordId.Value + "\n";
+                output += "Contact RecordID: " + typedAction.ContactRecordId.Value + "\n";
+                output += "Recipient Email Address: " + typedAction.To.Value + "\n";
+                output += "Email: " + "\n";
+                output += "Subject: " + typedAction.Subject.Value + "\n";
+                output += "Body: " + typedAction.Metadata + "\n";
                 return output;
+
             case "Send Mobile Push":
                 typedAction = action as SendMobilePush;
-                output += typedAction.Type + "\n";
+                output += "To: " + typedAction.ToUser.Value + "\n";
+                output += "Title: " + typedAction.Title + "\n";
+                output += "Message: " + typedAction.Msg + "\n";
                 return output;
+
             case "Send SMS":
                 typedAction = action as SendSMS;
-                output += typedAction.Type + "\n";
+                output += "To: " + typedAction.PhoneTo.Value + "\n";
+                output += "Message: " + typedAction.Message + "\n";
                 return output;
+
             case "Set Active Record ID For Screen":
                 typedAction = action as SetActiveRecordIDForScreen;
-                output += typedAction.Type + "\n";
+                output += "Set to " + typedAction.ActiveRecordId + "\n";
                 return output;
+
             case "Show Message":
                 typedAction = action as ShowMessage;
-                output += typedAction.Type + "\n";
+                output += "Title: " + typedAction.Title + "\n";
+                output += "Body: " + typedAction.Message + "\n";
+                output += "Buttons: " + typedAction.Buttons + "\n";
                 return output;
+
             case "Update Controls On Screen":
                 typedAction = action as UpdateControlsOnScreen;
-                output += typedAction.Type + "\n";
+                typedAction.ControlsToUpdate.forEach((control) => {
+                    output += getControlName(control.ControlId) + " -> " + getControlName(control.Source.Value) + "\n";
+                })
                 return output;
+
             case "Update Editable Grid Read Only Property":
                 typedAction = action as UpdateEditableGridReadOnlyProperty;
-                output += typedAction.Type + "\n";
+                typedAction.ControlsToUpdate.forEach((control) => {
+                    output += getControlName(control.ControlId) + " -> " + (control.ToggleOptions === 1 ? "read only" : "editable") + "\n";
+                })
                 return output;
+
             case "Update Fields In Table":
                 typedAction = action as UpdateFieldsInTable;
-                output += typedAction.Type + "\n";
+                output += "Table: " + typedAction.ViewNameFriendly + "\n";
+                typedAction.Fields.forEach((field) => {
+                    output += field.Field + " -> " + getControlName(field.Source.Value);
+                })
                 return output;
+                
             default:
                 return "Invalid action";
         }
     }
-
-
 
 
     const parseActions = () => {
@@ -421,9 +542,11 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
         const processActionSet = (actionSet: any, indent: string) => {
             output += `${indent}${actionSet.Name || '(Unnamed Action Set)'}: \n`;
+
             //@ts-ignore
             actionSet.Actions?.forEach(action => {
-                output += `${indent}- ${action.Type}\n`; // Output action type with indentation
+                output += `${indent}- ${action.Type}\n`;
+                output += getActionOutput(action);
                 if (action.Type === "If...then") {
                     output += `${indent}{\n`;
 
@@ -446,7 +569,8 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                         output += `${indent}}`;
 
                     }
-                } else if (action.Type === "Loop Through Grid") {
+                }
+                if (action.Type === "Loop Through Grid") {
                     const loopActionSet: LoopThroughGrid = action; // Cast to LoopThroughGrid
                     output += `${indent}  Grid ID: ${loopActionSet.GridId}\n`;
                     output += `${indent}  Only Checked Records: ${loopActionSet.OnlyCheckedRecords}\n`;
@@ -457,7 +581,8 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                         output += `${indent}}`;
 
                     }
-                } else if (action.Type === "Loop Through Table") {
+                }
+                if (action.Type === "Loop Through Table") {
                     const loopActionSet: LoopThroughTable = action; // Assuming LoopThroughTable is defined similarly
                     //@ts-ignore
                     output += `${indent}  Table ID: ${loopActionSet.RecordId}\n`;
@@ -469,6 +594,8 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
                     }
                 }
+                output += getActionOutput(action);
+
             });
         };
 
@@ -517,6 +644,7 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         };
 
         traverse(controls);
+        setSimplifiedActionSet(results);
         return results;
     };
 
@@ -527,11 +655,57 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         return uuidRegex.test(value);
     };
 
-    const extractActionResultName = (actionResultID: string | null | undefined | number): string => {
+    function getCallRoutineActionName(actionsetId: string): string {
+        try {
+            if (simplifiedActionSets) return simplifiedActionSets.filter(e => e.ActionSetId === actionsetId)[0].Name;
+        }
+        finally {
+            return "actionSet name couldn't be found \n"
+        }
+    }
+
+
+    const getControlName = (controlID: string | null | undefined): string => {
+        if (!controlID) return "No Control Found";
+
+        const controls = designer?.Data?.screen?.controls;
+
+        const traverse = (value: any): string | undefined => {
+            if (!isValidUUID(value)) {
+                return value?.Name; // Assuming the control has a 'Name' property
+            }
+
+            if (value.Controls) {
+                for (const nestedControl of value.Controls) {
+                    const result = traverse(nestedControl);
+                    if (result) {
+                        return result;
+                    }
+                }
+            }
+        };
+
+        //@ts-ignore
+        for (const control of controls) {
+            const result = traverse(control);
+            if (result) {
+                return result; // Return the result if found
+            }
+        }
+
+        return "Control name not found";
+    };
+
+
+    const getActionResultName = (actionResultID: string | null | undefined | number): string => {
         if (!actionResultID || typeof actionResultID === 'number') return "No Name Found";
 
 
-        const actionSets = designer?.Data?.screen?.actionSets;
+
+        // Check if actionSets is defined and is an array
+        if (!Array.isArray(simplifiedActionSets)) {
+            return "ActionSets not found or not an array"; // Return early if actionSets is not valid
+        }
 
         const traverse = (value: any): string | undefined => {
             if (value.Type === "Assign Value To Action Result") {
@@ -539,6 +713,14 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                 for (const action of typedAction.AssignValueToActions) {
                     if (action.ActionResultId === actionResultID) {
                         return action.ActionResultName;
+                    }
+                }
+            }
+            if (value.Type === "Retrieve Values From Table") {
+                const typedAction = value as RetrieveValuesFromTable;
+                for (const action of typedAction.Bindings) {
+                    if (action.ResultToSet.ActionResultId === actionResultID) {
+                        return action.ResultToSet.ActionResultName;
                     }
                 }
             }
@@ -554,7 +736,7 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         };
 
         //@ts-ignore
-        for (const actionSet of actionSets) {
+        for (const actionSet of simplifiedActionSets) {
             const result = traverse(actionSet);
             if (result) {
                 return result; // Return the result if found
@@ -698,17 +880,20 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return (
         <DesignerContext.Provider value={{
             designer,
+            simplifiedActionSets,
             setDesigner,
             getWhereClauseOutput,
             getActionByType,
-            getActionOutput,
+            getControlName,
             parseActions,
             extractActionSets,
             isValidUUID,
-            extractActionResultName,
+            getActionResultName,
             extractShowMessageActionSets,
             handleMessageParsing,
-            handleCSVGeneration
+            handleCSVGeneration,
+            getCallRoutineActionName,
+            getActionOutput
         }}>
             {children}
         </DesignerContext.Provider>
@@ -722,3 +907,4 @@ export const useDesigner = () => {
     }
     return context;
 };
+
