@@ -4,6 +4,7 @@ export function getConditinoalType(value: number | null): string{
 }
 
 export const ConditionTypes: string[] = [
+    "blank",
     "Is Equal",
     "Is Not Equal",
     "Greater Than",

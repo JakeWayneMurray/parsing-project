@@ -1,4 +1,5 @@
 export const MathFunctionTypes: string[] = [
+    "blank",
     "Add",
     "Subtract",
     "Multiply",
@@ -20,6 +21,7 @@ export const MathFunctionTypes: string[] = [
 
 
 export const MathFunctionExpressions: string[] =[
+    "blank",
     " + ",  // Addition
     " - ",  // Subtraction
     " x ",  // Multiplication

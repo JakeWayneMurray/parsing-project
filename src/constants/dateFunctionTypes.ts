@@ -1,4 +1,5 @@
 export const DateFunctiontypes: string[] = [
+    "blank",
     "Format Date",
     "Year",
     "Month",

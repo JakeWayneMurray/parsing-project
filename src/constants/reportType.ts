@@ -1,4 +1,5 @@
 export const ReportTypes: string[] = [
+    "blank",
     "CSV",
     "HTM",
     "PDF",

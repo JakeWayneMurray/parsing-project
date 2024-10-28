@@ -1,4 +1,5 @@
 export const TextFunctionType: string[] = [
+    "blank",
     "Find In Json",
     "Find In Text",
     "IsDate",

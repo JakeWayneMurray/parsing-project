@@ -64,11 +64,11 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const [designer, setDesigner] = useState<Designer | null>(null);
     const [simplifiedActionSets, setSimplifiedActionSet] = useState<SimplifiedActionSet[]>([]); // Changed from SimplifiedActionSet | [] to SimplifiedActionSet[]
 
-    function getWhereClauseOutput(action: LoopThroughTable | DeleteRecordsFromTable | RetrieveValuesFromTable | PrepareForAccounting): string {
+    function getWhereClauseOutput(action: LoopThroughTable | DeleteRecordsFromTable | RetrieveValuesFromTable | PrepareForAccounting, indent: string): string {
         let output = "Where ";
         let whereArray = action.WhereClause;
         whereArray.forEach(where => {
-            output += isValidUUID(where.Source?.Value) ? getActionResultName(where.Source?.Value) : where.Source?.Value + "\n";
+            output += isValidUUID(where.Source?.Value) ? getActionResultName(where.Source?.Value) : where.Source?.Value + "\n" + indent;
         });
 
         return output;
@@ -223,9 +223,9 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
 
 
-    function getActionOutput(action: any): string {
+    function getActionOutput(action: any, indent: string): string {
 
-        let output = ""
+        let output = indent;
         let typedAction;
         switch (action.Type) {
             case "Loop Through Attachments":
@@ -242,7 +242,7 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             case "Loop Through Table":
                 typedAction = action as LoopThroughTable;
                 output += "Table:" + typedAction.ViewNameFriendly + "\n";
-                output += "Where: " + getWhereClauseOutput(typedAction) + "\n";
+                output += "Where: " + getWhereClauseOutput(typedAction, indent) + "\n";
                 return output;
 
             case "Add Attachment To Record ID":
@@ -356,7 +356,6 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                 typedAction = action as ConditionalStatement;
                 typedAction.ExpressionList.forEach((expression) => {
                     output += "if " + expression.Source?.Value + " " + getConditinoalType(expression.Operation) + " " + action.ActionResultName + "\n";
-                    ;
                 })
                 return output;
 
@@ -375,7 +374,7 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             case "Delete Records From Table":
                 typedAction = action as DeleteRecordsFromTable;
                 output += typedAction.ViewNameFriendly + "\n";
-                output += getWhereClauseOutput(typedAction) + "\n";
+                output += getWhereClauseOutput(typedAction, indent) + "\n";
                 return output;
 
             case "Generate Report":
@@ -428,7 +427,7 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             case "Prepare For Accounting":
                 typedAction = action as PrepareForAccounting;
                 output += typedAction.ViewNameFriendly + "\n";
-                output += getWhereClauseOutput(typedAction) + "\n";
+                output += getWhereClauseOutput(typedAction, indent) + "\n";
                 output += "Override sync: " + (typedAction.SyncOverride ? "true" : "false") + "\n";
                 return output;
 
@@ -460,10 +459,10 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                     output += binding.ValueName + " -> " + (binding.UpdateControl ? getControlName(binding.ControlToUpdate) : binding.ResultToSet.ActionResultName) + "\n";
                 })
                 return output;
-            case "Retrieve Values From Table":
+            case "Retrive Values From Table":
                 typedAction = action as RetrieveValuesFromTable;
                 output += "Table: " + typedAction.ViewNameFriendly + "\n";
-                output += getWhereClauseOutput(typedAction);
+                output += getWhereClauseOutput(typedAction, indent);
                 typedAction.Bindings.forEach((binding) => {
                     output += binding.FieldName + " -> " + (binding.UpdateControl ? getControlName(binding.ControlToUpdate) : binding.ResultToSet.ActionResultName) + "\n";
                 })
@@ -529,7 +528,7 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                 return output;
                 
             default:
-                return "Invalid action";
+                return "Invalid action: " + action.type + "\n";
         }
     }
 
@@ -546,7 +545,7 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             //@ts-ignore
             actionSet.Actions?.forEach(action => {
                 output += `${indent}- ${action.Type}\n`;
-                output += getActionOutput(action);
+                //output += getActionOutput(action, indent);
                 if (action.Type === "If...then") {
                     output += `${indent}{\n`;
 
@@ -594,7 +593,7 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
                     }
                 }
-                output += getActionOutput(action);
+                //output += getActionOutput(action, indent);
 
             });
         };
@@ -700,8 +699,6 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const getActionResultName = (actionResultID: string | null | undefined | number): string => {
         if (!actionResultID || typeof actionResultID === 'number') return "No Name Found";
 
-
-
         // Check if actionSets is defined and is an array
         if (!Array.isArray(simplifiedActionSets)) {
             return "ActionSets not found or not an array"; // Return early if actionSets is not valid
@@ -711,16 +708,16 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             if (value.Type === "Assign Value To Action Result") {
                 const typedAction = value as AssignValueToActionResult;
                 for (const action of typedAction.AssignValueToActions) {
-                    if (action.ActionResultId === actionResultID) {
+                    if (action?.ActionResultId === actionResultID) {
                         return action.ActionResultName;
                     }
                 }
             }
-            if (value.Type === "Retrieve Values From Table") {
+            if (value.Type === "Retrive Values From Table") {
                 const typedAction = value as RetrieveValuesFromTable;
                 for (const action of typedAction.Bindings) {
-                    if (action.ResultToSet.ActionResultId === actionResultID) {
-                        return action.ResultToSet.ActionResultName;
+                    if (action?.ResultToSet?.ActionResultId === actionResultID) {
+                        return action?.ResultToSet?.ActionResultName;
                     }
                 }
             }
@@ -839,8 +836,8 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             const comments = action.Notes || '(No comments)';
             csvContent += `"${actionSetName}","${title}","${body}","${buttons}","${comments}"\n`;
         };
-        //@ts-ignore
 
+        //@ts-ignore
         filteredActionSets.forEach(actionSet => {
             //@ts-ignore
             actionSet?.Actions?.forEach(action => {

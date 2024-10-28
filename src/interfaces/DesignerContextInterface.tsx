@@ -53,7 +53,7 @@ import { SimplifiedActionSet } from './ActionSet';
 export interface DesignerContextType {
     designer: Designer | null;
     setDesigner: React.Dispatch<React.SetStateAction<Designer | null>>;
-    getWhereClauseOutput: (action: LoopThroughTable | DeleteRecordsFromTable | RetrieveValuesFromTable | PrepareForAccounting) => string;
+    getWhereClauseOutput: (action: LoopThroughTable | DeleteRecordsFromTable | RetrieveValuesFromTable | PrepareForAccounting, indent: string) => string;
     getActionByType: (action: any) => 
         LoopThroughAttachments | 
         LoopThroughGrid | 
@@ -112,6 +112,6 @@ export interface DesignerContextType {
     simplifiedActionSets:  SimplifiedActionSet[] | null;
     getControlName (controlID: string | null | undefined): string;
     getCallRoutineActionName(actionsetId: string): string;
-    getActionOutput(action: any): string;
+    getActionOutput(action: any, indent: string): string;
 
 }
