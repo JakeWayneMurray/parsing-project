@@ -147,9 +147,9 @@ export const handleCSVGeneration = (filteredActionSets: any, designer: DesignerD
    // Generate CSV content
         let screenName = `${designer?.Data?.screen?.name}\n`;
         //@ts-ignore
-        const versionList = designer?.Data?.versionList as Record<string, string>; // Assuming versionList is an object
-        const values = Object.values(versionList);
-        const currentVersion = values.length > 0 ? values[values.length - 1] : null;
+        const currentVersionId = designer?.Data?.screen?.versionId;
+        //@ts-ignore
+        const currentVersion = designer?.Data?.versionList[currentVersionId];
         let csvContent = `Screen Name: ${designer?.Data?.screen?.name}\n`;
         csvContent += currentVersion + '\n';
         csvContent += "ActionSet,Title,Body,Buttons,Comments\n";
