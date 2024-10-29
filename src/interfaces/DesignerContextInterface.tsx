@@ -107,8 +107,8 @@ export interface DesignerContextType {
     isValidUUID: (value: string | null | undefined | number) => boolean;
     getActionResultName: (actionResultID: string | null | undefined | number) => string;
     extractShowMessageActionSets: () => SimplifiedActionSet[];
-    handleMessageParsing: (filteredActionSets: any, output: string, setOutputBox: (ouptut: string) => void, setShowParsed: (output: boolean) => void) => void;
-    handleCSVGeneration: (filteredActionSets: any) => void;
+    handleMessageParsing: (output: string, setOutputBox: (ouptut: string) => void, setShowParsed: (output: boolean) => void) => void;
+    handleCSVGeneration: () => void;
     simplifiedActionSets:  SimplifiedActionSet[] | null;
     getControlName (controlID: string | null | undefined): string;
     getCallRoutineActionName(actionsetId: string): string;

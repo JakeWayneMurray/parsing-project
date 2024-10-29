@@ -788,7 +788,7 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         return results;
     };
 
-    const handleMessageParsing = (filteredActionSets: any, output: string, setOutputBox: (ouptut: string) => void, setShowParsed: (output: boolean) => void) => {
+    const handleMessageParsing = (output: string, setOutputBox: (ouptut: string) => void, setShowParsed: (output: boolean) => void) => {
         const appendShowMessage = (actionSetName: string, action: any) => {
             output += `\n${actionSetName}: \n`;
             output += `  Title: ${action.Title || '(No title)'}\n`;
@@ -797,6 +797,9 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             output += `  Comments: ${action.Notes || '(No comments)'}\n`;
         };
         //@ts-ignore
+        extractActionSets();
+        const filteredActionSets = simplifiedActionSets.filter(actionSet => actionSet.Actions && actionSet.Actions.length > 0);
+
 
         filteredActionSets.forEach(actionSet => {
             //@ts-ignore
@@ -825,9 +828,12 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         setShowParsed(true);
     };
 
-    const handleCSVGeneration = (filteredActionSets: any) => {
+    const handleCSVGeneration = () => {
         // Generate CSV content
-        let csvContent = "ActionSet,Title,Body,Buttons,Comments\n";
+        let csvContent = `Screen Name: ${designer?.Data?.screen?.name}\n`;
+        let screenName = `${designer?.Data?.screen?.name}\n`;
+
+        csvContent += "ScreenName,ActionSet,Title,Body,Buttons,Comments\n";
 
         const addToCSV = (actionSetName: string, action: any) => {
             const title = action.Title || '(No title)';
@@ -836,6 +842,8 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             const comments = action.Notes || '(No comments)';
             csvContent += `"${actionSetName}","${title}","${body}","${buttons}","${comments}"\n`;
         };
+        extractActionSets();
+        const filteredActionSets = simplifiedActionSets.filter(actionSet => actionSet.Actions && actionSet.Actions.length > 0);
 
         //@ts-ignore
         filteredActionSets.forEach(actionSet => {
@@ -849,12 +857,12 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                     const conditionalActionSet: ConditionalStatement = action;
                     conditionalActionSet.ActionSetOnTrue?.Actions?.forEach(innerAction => {
                         if (innerAction.Type === "Show Message") {
-                            addToCSV(`${actionSet.Name} (If True)`, innerAction);
+                            addToCSV(`${actionSet.Name}`, innerAction);
                         }
                     });
                     conditionalActionSet.ActionSetOnFalse?.Actions?.forEach(innerAction => {
                         if (innerAction.Type === "Show Message") {
-                            addToCSV(`${actionSet.Name} (If False)`, innerAction);
+                            addToCSV(`${actionSet.Name}`, innerAction);
                         }
                     });
                 }
@@ -866,7 +874,7 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         const link = document.createElement('a');
         const url = URL.createObjectURL(blob);
         link.setAttribute('href', url);
-        link.setAttribute('download', 'parsed_data.csv');
+        link.setAttribute('download', screenName + '.csv');
 
         document.body.appendChild(link);
         link.click(); // Trigger the download

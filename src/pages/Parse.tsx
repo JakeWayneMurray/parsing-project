@@ -29,13 +29,11 @@ export default function Parse() {
     setDesigner(newDesignerState);
     let output = `Screen Name: ${response?.Data?.screen?.name}\n`;
     output += `Modified By: ${response?.Data?.screen?.modifiedBy}\n`;
-    const foundActionSets = extractActionSets();
-    const filteredActionSets = foundActionSets.filter(actionSet => actionSet.Actions && actionSet.Actions.length > 0);
 
     if (!outputToCSV) {
-      handleMessageParsing(filteredActionSets, output, setOutputBox, setShowParsed);
+      handleMessageParsing(output, setOutputBox, setShowParsed);
     } else {
-      handleCSVGeneration(filteredActionSets);
+      handleCSVGeneration();
     }
   };
 
