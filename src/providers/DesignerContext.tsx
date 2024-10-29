@@ -526,7 +526,7 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                     output += field.Field + " -> " + getControlName(field.Source.Value);
                 })
                 return output;
-                
+
             default:
                 return "Invalid action: " + action.type + "\n";
         }
@@ -536,6 +536,11 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const parseActions = () => {
         let output = `Screen Name: ${designer?.Data?.screen?.name}\n`;
         output += `Modified By: ${designer?.Data?.screen?.modifiedBy}\n`;
+        //@ts-ignore
+        const versionList = designer?.Data?.versionList as Record<string, string>; // Assuming versionList is an object
+        const values = Object.values(versionList);
+        const lastValue = values.length > 0 ? values[values.length - 1] : null;
+        console.log("Last Value:", lastValue);  // Outputs the last value or `null` if no values are present
 
         const foundActionSets = extractActionSets();
 
@@ -788,7 +793,7 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         return results;
     };
 
-    const handleMessageParsing = (output: string, setOutputBox: (ouptut: string) => void, setShowParsed: (output: boolean) => void) => {
+    const handleMessageParsing = async (output: string, setOutputBox: (ouptut: string) => void, setShowParsed: (output: boolean) => void) => {
         const appendShowMessage = (actionSetName: string, action: any) => {
             output += `\n${actionSetName}: \n`;
             output += `  Title: ${action.Title || '(No title)'}\n`;
@@ -828,12 +833,16 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         setShowParsed(true);
     };
 
-    const handleCSVGeneration = () => {
+    const handleCSVGeneration = async () => {
         // Generate CSV content
-        let csvContent = `Screen Name: ${designer?.Data?.screen?.name}\n`;
         let screenName = `${designer?.Data?.screen?.name}\n`;
-
-        csvContent += "ScreenName,ActionSet,Title,Body,Buttons,Comments\n";
+        //@ts-ignore
+        const versionList = designer?.Data?.versionList as Record<string, string>; // Assuming versionList is an object
+        const values = Object.values(versionList);
+        const currentVersion = values.length > 0 ? values[values.length - 1] : null;
+        let csvContent = `Screen Name: ${designer?.Data?.screen?.name}\n`;
+        csvContent += currentVersion + '\n';
+        csvContent += "ActionSet,Title,Body,Buttons,Comments\n";
 
         const addToCSV = (actionSetName: string, action: any) => {
             const title = action.Title || '(No title)';
@@ -874,7 +883,7 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         const link = document.createElement('a');
         const url = URL.createObjectURL(blob);
         link.setAttribute('href', url);
-        link.setAttribute('download', screenName + '.csv');
+        link.setAttribute('download', screenName + ' ' + currentVersion + '.csv');
 
         document.body.appendChild(link);
         link.click(); // Trigger the download

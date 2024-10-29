@@ -1,18 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { NewEditInvoice } from '../assets/NewEditInvoices';
 import SecondaryButton from '../components/SecondaryButton';
 import Checkbox from '../components/Checkbox';
 import { useDesigner } from '../providers/DesignerContext';
-
+import { handleMessageParsing, handleCSVGeneration, extractActionSetsForShow } from '../utils/utils';
 export default function Parse() {
   const [response] = useState(NewEditInvoice);
-  const { setDesigner, extractActionSets, parseActions, handleMessageParsing, handleCSVGeneration, } = useDesigner();
+  const { setDesigner, extractActionSets, parseActions} = useDesigner();
   const [showParsed, setShowParsed] = useState(false);
   const [outputBox, setOutputBox] = useState<string>('');
   const [onlyShowMessages, setOnlyShowMessages] = useState(false);
   const [outputToCSV, setOutputToCSV] = useState(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const handleParseClick = () => {
+    setIsLoading(true);
     const textAreaValue = (document.getElementById('oldScreenJson') as HTMLTextAreaElement).value;
     //@ts-ignore
     const newDesignerState = textAreaValue.trim() === '' ? NewEditInvoice : JSON.parse(textAreaValue);
@@ -21,21 +23,29 @@ export default function Parse() {
     setShowParsed(true);
   };
   
-
   const handleShowMessageParseClick = () => {
-    const textAreaValue = (document.getElementById('oldScreenJson') as HTMLTextAreaElement).value;
-    //@ts-ignore
-    const newDesignerState = textAreaValue.trim() === '' ? NewEditInvoice : JSON.parse(textAreaValue);
-    setDesigner(newDesignerState);
+    const unparsedAreaValue = (document.getElementById('oldScreenJson') as HTMLTextAreaElement).value;
+
+    const textAreaValue = JSON.parse((document.getElementById('oldScreenJson') as HTMLTextAreaElement).value);
     let output = `Screen Name: ${response?.Data?.screen?.name}\n`;
     output += `Modified By: ${response?.Data?.screen?.modifiedBy}\n`;
 
-    if (!outputToCSV) {
-      handleMessageParsing(output, setOutputBox, setShowParsed);
-    } else {
-      handleCSVGeneration();
+    const textAreaActionSets = extractActionSetsForShow(textAreaValue);
+    let foundActionSets = extractActionSetsForShow(response);
+
+    if (unparsedAreaValue.trim() !== '') {
+      foundActionSets = textAreaActionSets;
     }
-  };
+
+
+    if (!outputToCSV) {
+        // Call the function to handle message parsing
+        handleMessageParsing(foundActionSets, output, setOutputBox, setShowParsed);
+    } else {
+        // Call the function to generate CSV content
+        handleCSVGeneration(foundActionSets, textAreaValue);
+    }
+};
 
   const handleCopyClick = () => {
     const parsedText = (document.getElementById('parsedCode') as HTMLTextAreaElement).value;
@@ -53,13 +63,20 @@ export default function Parse() {
     setShowParsed(false);
   }
 
+  
+
+  // Memoize parseActions to prevent unnecessary calls
+  const parseActionsCallBack = useCallback(() => {
+    if (showParsed) {
+        const output = parseActions();
+        setOutputBox(output);
+    }
+  }, [showParsed]); // Add showParsed as a dependency
+
   // Add this useEffect to handle parsing when designer state changes
   useEffect(() => {
-    if (showParsed) {
-      const output = parseActions();
-      setOutputBox(output);
-    }
-  }, [showParsed, parseActions]); // Add parseActions to dependencies
+    parseActionsCallBack();
+  }, [showParsed]); // Remove parseActions from dependencies
 
   return (
     <div className="flex items-center justify-center h-screen w-screen px-4">
@@ -109,7 +126,7 @@ export default function Parse() {
         {!showParsed ? (
           <SecondaryButton
             onClick={onlyShowMessages ? handleShowMessageParseClick : handleParseClick}
-            label="Parse Now"
+            label= {!isLoading ? "Parse Now" : "Loading..."}
           />) :
           <div className="flex flex-row space-x-5">
 
