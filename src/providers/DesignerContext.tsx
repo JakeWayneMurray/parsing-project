@@ -1,11 +1,11 @@
 import React, { createContext, useContext, useState } from 'react';
 import { LoopThroughAttachments } from "../interfaces/Actions/LoopThroughAttachments";
 import { LoopThroughGrid } from "../interfaces/Actions/LoopThroughGrid";
-import { Designer } from "../interfaces/Designer";
+import { Designer } from '../interfaces/Designer';
 import { SimplifiedActionSet } from '../interfaces/ActionSet';
 import { LoopThroughTable } from '../interfaces/Actions/LoopThroughTable';
 import { AddAttachmentToRecordID } from "../interfaces/Actions/AddAttachmentToRecordID";
-import { AssignValueToActionResult } from "../interfaces/Actions/AssignValueToActionResult";
+import { AssignValueToActionResult, AssignValueToActions } from "../interfaces/Actions/AssignValueToActionResult";
 import { CallWebService } from "../interfaces/Actions/CallWebService";
 import { ClearScreenForNewEntry } from "../interfaces/Actions/ClearScreenForNewEntry";
 import { EnableDisableControls } from "../interfaces/Actions/EnableDisableControls";
@@ -63,12 +63,28 @@ const DesignerContext = createContext<DesignerContextType | undefined>(undefined
 export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [designer, setDesigner] = useState<Designer | null>(null);
     const [simplifiedActionSets, setSimplifiedActionSet] = useState<SimplifiedActionSet[]>([]); // Changed from SimplifiedActionSet | [] to SimplifiedActionSet[]
+    const [controls, setControls] = useState<Record<string, string>>({});
+    const [actionResults, setActionResults] = useState<Record<string, string>>({});
+
+    function initializeDesigner(newDesigner: Designer | null){
+        setDesigner(newDesigner);
+        if(newDesigner){
+        extractControlNames(newDesigner)
+        extractActionResults(newDesigner);
+        }
+        else{console.log('skipped as designer is null')}
+        console.log('completed');
+        console.log(controls)
+        console.log(actionResults)
+
+    }
+
 
     function getWhereClauseOutput(action: LoopThroughTable | DeleteRecordsFromTable | RetrieveValuesFromTable | PrepareForAccounting, indent: string): string {
         let output = "Where ";
         let whereArray = action.WhereClause;
         whereArray.forEach(where => {
-            output += isValidUUID(where.Source?.Value) ? getActionResultName(where.Source?.Value) : where.Source?.Value + "\n" + indent;
+            if(where.Source?.Value) output += actionResults[where.Source?.Value] + "\n" + indent;
         });
 
         return output;
@@ -199,7 +215,7 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                 return action as RetrieveExchangeRate;
             case "Retrieve Value From Email Gadget":
                 return action as RetrieveValueFromEmailGadget;
-            case "Retrieve Values From Table":
+            case "Retrive Values From Table":
                 return action as RetrieveValuesFromTable;
             case "Send Email":
                 return action as SendEmail;
@@ -252,9 +268,10 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
             case "Assign Value To Action Result":
                 typedAction = action as AssignValueToActionResult;
-                typedAction.AssignValueToActions.forEach((assignValue) => {
-                    output += (isValidUUID(assignValue.Source.Value) ? getActionResultName(assignValue.Source.Value) : assignValue.Source.Value) + " -> " + action.ActionResultName + "\n";
-                })
+                typedAction.AssignValueToActions.forEach((assignValue: AssignValueToActions) => {
+                    const sourceValue = isValidUUID(assignValue.Source?.Value) ? actionResults[assignValue.Source?.Value] : assignValue.Source?.Value;
+                    output += `${sourceValue} -> ${action.ActionResultName}\n`;
+                });
                 return output;
 
             case "Call Web Service":
@@ -268,7 +285,7 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             case "Enable Disable Controls":
                 typedAction = action as EnableDisableControls;
                 typedAction.ControlsToUpdate.forEach((control) => {
-                    output += getControlName(control.ControlId) + " -> " +
+                    output += controls[control.ControlId] + " -> " +
                         (control.ToggleOptions === 1 ? "Enabled" : "Disabled") + "\n";
                 })
 
@@ -277,7 +294,7 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             case "Expand Collapse Section":
                 typedAction = action as ExpandCollapseSection;
                 typedAction.ControlsToUpdate.forEach((control) => {
-                    output += getControlName(control.ControlId) + " -> " +
+                    output += controls[control.ControlId] + " -> " +
                         (control.ToggleOptions === 1 ? "Expanded" : "Collapsed") + "\n";
                 })
                 return output;
@@ -288,7 +305,7 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
             case "Set Focus To Control":
                 typedAction = action as SetFocusToControl;
-                output += "Set Focus to " + getControlName(typedAction.ControlId) + "\n";
+                output += "Set Focus to " + controls[typedAction.ControlId] + "\n";
                 return output;
 
             case "Set View Filter":
@@ -299,7 +316,7 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             case "Show Hide Controls":
                 typedAction = action as ShowHideControls;
                 typedAction.ControlsToUpdate.forEach((control) => {
-                    output += getControlName(control.ControlId) + " -> " +
+                    output += controls[control.ControlId] + " -> " +
                         (control.ToggleOptions === 1 ? "Show" : "Hide") + "\n";
                 })
                 return output;
@@ -315,7 +332,7 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             case "Validate Controls On Screen":
                 typedAction = action as ValidateControlsOnScreen;
                 typedAction.ControlsToValidate.forEach((control) => {
-                    output += getControlName(control.ControlId);
+                    output += controls[control.ControlId];
                 })
 
                 return output;
@@ -368,7 +385,7 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             //TODO: Expand the functionality  
             case "Date Functions":
                 typedAction = action as DateFunctions;
-                output += DateFunctiontypes[typedAction.DateFunctionType] + "-> " + "\n";
+                output += DateFunctiontypes[typedAction.DateFunctionType] + "-> \n";
                 return output;
 
             case "Delete Records From Table":
@@ -399,7 +416,7 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
                 output += "Table:" + typedAction.ViewNameFriendly + "\n";
                 typedAction.Fields.forEach((field) => {
-                    output += field.Field + " -> " + getActionResultName(field.Source.Value) + "\n";
+                    output += field.Field + " -> " + actionResults[field.Source.Value] + "\n";
                     ;
                 })
                 return output;
@@ -444,7 +461,7 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             case "Refresh Control":
                 typedAction = action as RefreshControl;
                 typedAction.ControlsToRefresh.forEach((control) => {
-                    output += getControlName(control.ControlId) + "\n";
+                    output += controls[control.ControlId] + "\n";
                 })
                 return output;
 
@@ -456,7 +473,7 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             case "Retrieve Value From Email Gadget":
                 typedAction = action as RetrieveValueFromEmailGadget;
                 typedAction.Bindings.forEach((binding) => {
-                    output += binding.ValueName + " -> " + (binding.UpdateControl ? getControlName(binding.ControlToUpdate) : binding.ResultToSet.ActionResultName) + "\n";
+                    if(binding.ControlToUpdate) output += binding.ValueName + " -> " + (binding.UpdateControl ? controls[binding.ControlToUpdate] : binding.ResultToSet.ActionResultName) + "\n";
                 })
                 return output;
             case "Retrive Values From Table":
@@ -464,7 +481,7 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                 output += "Table: " + typedAction.ViewNameFriendly + "\n";
                 output += getWhereClauseOutput(typedAction, indent);
                 typedAction.Bindings.forEach((binding) => {
-                    output += binding.FieldName + " -> " + (binding.UpdateControl ? getControlName(binding.ControlToUpdate) : binding.ResultToSet.ActionResultName) + "\n";
+                    if(binding.ControlToUpdate) output += binding.FieldName + " -> " + (binding.UpdateControl ? controls[binding.ControlToUpdate] : binding.ResultToSet.ActionResultName) + "\n";
                 })
                 return output;
 
@@ -475,7 +492,6 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                 output += "Contact RecordID: " + typedAction.ContactRecordId.Value + "\n";
                 output += "Contact RecordID: " + typedAction.ContactRecordId.Value + "\n";
                 output += "Recipient Email Address: " + typedAction.To.Value + "\n";
-                output += "Email: " + "\n";
                 output += "Subject: " + typedAction.Subject.Value + "\n";
                 output += "Body: " + typedAction.Metadata + "\n";
                 return output;
@@ -508,14 +524,14 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             case "Update Controls On Screen":
                 typedAction = action as UpdateControlsOnScreen;
                 typedAction.ControlsToUpdate.forEach((control) => {
-                    output += getControlName(control.ControlId) + " -> " + getControlName(control.Source.Value) + "\n";
+                    output += controls[control.ControlId] + " -> " + actionResults[control.Source.Value] + "\n";
                 })
                 return output;
 
             case "Update Editable Grid Read Only Property":
                 typedAction = action as UpdateEditableGridReadOnlyProperty;
                 typedAction.ControlsToUpdate.forEach((control) => {
-                    output += getControlName(control.ControlId) + " -> " + (control.ToggleOptions === 1 ? "read only" : "editable") + "\n";
+                    output += controls[control.ControlId] + " -> " + (control.ToggleOptions === 1 ? "read only" : "editable") + "\n";
                 })
                 return output;
 
@@ -523,7 +539,7 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                 typedAction = action as UpdateFieldsInTable;
                 output += "Table: " + typedAction.ViewNameFriendly + "\n";
                 typedAction.Fields.forEach((field) => {
-                    output += field.Field + " -> " + getControlName(field.Source.Value);
+                    output += field.Field + " -> " + controls[field.Source.Value];
                 })
                 return output;
 
@@ -536,11 +552,10 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const parseActions = () => {
         let output = `Screen Name: ${designer?.Data?.screen?.name}\n`;
         output += `Modified By: ${designer?.Data?.screen?.modifiedBy}\n`;
+        const currentVersionId = designer?.Data?.screen?.versionId;
         //@ts-ignore
-        const versionList = designer?.Data?.versionList as Record<string, string>; // Assuming versionList is an object
-        const values = Object.values(versionList);
-        const lastValue = values.length > 0 ? values[values.length - 1] : null;
-        console.log("Last Value:", lastValue);  // Outputs the last value or `null` if no values are present
+        const currentVersion = designer?.Data?.versionList[currentVersionId];
+        output += currentVersion + '\n';
 
         const foundActionSets = extractActionSets();
 
@@ -550,7 +565,7 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             //@ts-ignore
             actionSet.Actions?.forEach(action => {
                 output += `${indent}- ${action.Type}\n`;
-                //output += getActionOutput(action, indent);
+                output += getActionOutput(action, indent);
                 if (action.Type === "If...then") {
                     output += `${indent}{\n`;
 
@@ -598,7 +613,7 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
                     }
                 }
-                //output += getActionOutput(action, indent);
+                output += getActionOutput(action, indent);
 
             });
         };
@@ -652,6 +667,25 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         return results;
     };
 
+    
+    const extractControlNames = (newDesigner: Designer | null) => {// Assu
+            const controls: Record<string, string> = {};
+        
+            function traverse(obj: any) {
+                if (Array.isArray(obj)) {
+                    obj.forEach(item => traverse(item));
+                } else if (typeof obj === 'object' && obj !== null) {
+                    if (obj.hasOwnProperty('id') && obj.hasOwnProperty('name')) {
+                        controls[obj.id] = obj.name;
+                    }
+                    Object.values(obj).forEach(value => traverse(value));
+                }
+            }
+        
+            traverse(newDesigner);
+            setControls(controls);
+        }
+
     const isValidUUID = (value: string | null | undefined | number): boolean => {
         // Check if value is null, undefined, or a number
         if (!value || typeof value === 'number') return false;
@@ -669,84 +703,40 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
 
 
-    const getControlName = (controlID: string | null | undefined): string => {
-        if (!controlID) return "No Control Found";
+function extractActionResults(newDesigner: Designer | null) {
+    const actionResultNames: Record<string, string> = {};
 
-        const controls = designer?.Data?.screen?.controls;
-
-        const traverse = (value: any): string | undefined => {
-            if (!isValidUUID(value)) {
-                return value?.Name; // Assuming the control has a 'Name' property
+    //@ts-ignore
+    function traverseActions(actions) {
+    //@ts-ignore
+        actions.forEach(action => {
+            // Check if the action has the expected properties
+            if (action.ActionResultName && action.Source) {
+                actionResultNames[action.Source.Value] = action.ActionResultName;
             }
 
-            if (value.Controls) {
-                for (const nestedControl of value.Controls) {
-                    const result = traverse(nestedControl);
-                    if (result) {
-                        return result;
-                    }
-                }
-            }
-        };
-
-        //@ts-ignore
-        for (const control of controls) {
-            const result = traverse(control);
-            if (result) {
-                return result; // Return the result if found
-            }
-        }
-
-        return "Control name not found";
-    };
-
-
-    const getActionResultName = (actionResultID: string | null | undefined | number): string => {
-        if (!actionResultID || typeof actionResultID === 'number') return "No Name Found";
-
-        // Check if actionSets is defined and is an array
-        if (!Array.isArray(simplifiedActionSets)) {
-            return "ActionSets not found or not an array"; // Return early if actionSets is not valid
-        }
-
-        const traverse = (value: any): string | undefined => {
-            if (value.Type === "Assign Value To Action Result") {
-                const typedAction = value as AssignValueToActionResult;
-                for (const action of typedAction.AssignValueToActions) {
-                    if (action?.ActionResultId === actionResultID) {
-                        return action.ActionResultName;
-                    }
-                }
-            }
-            if (value.Type === "Retrive Values From Table") {
-                const typedAction = value as RetrieveValuesFromTable;
-                for (const action of typedAction.Bindings) {
-                    if (action?.ResultToSet?.ActionResultId === actionResultID) {
-                        return action?.ResultToSet?.ActionResultName;
-                    }
-                }
+            // Handle nested actions if they exist
+            if (action.AssignValueToActions) {
+                traverseActions(action.AssignValueToActions);
             }
 
-            if (value.Actions) {
-                for (const nestedAction of value.Actions) {
-                    const result = traverse(nestedAction);
-                    if (result) {
-                        return result;
-                    }
-                }
+            // Check for other potential nested structures
+            if (action.Actions) {
+                traverseActions(action.Actions);
             }
-        };
-
-        //@ts-ignore
-        for (const actionSet of simplifiedActionSets) {
-            const result = traverse(actionSet);
-            if (result) {
-                return result; // Return the result if found
-            }
-        }
-
-        return "ActionResultName not found";
+        });
     }
+
+    const actionSets = newDesigner?.Data.screen.actionSets as Record<string, any>;
+    Object.values(actionSets).forEach(actionSet => {
+        if (actionSet.Actions) traverseActions(actionSet.Actions);
+        if(actionSet.Actions.ActionsOnTrue) traverseActions(actionSet.Actions.ActionsOnTrue);
+        if(actionSet.Actions.ActionsOnFalse) traverseActions(actionSet.Actions.ActionsOnFalse);
+        
+    });
+
+    setActionResults(actionResultNames);
+}
 
     const extractShowMessageActionSets = (): SimplifiedActionSet[] => {
         const results: SimplifiedActionSet[] = [];
@@ -793,119 +783,18 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         return results;
     };
 
-    const handleMessageParsing = async (output: string, setOutputBox: (ouptut: string) => void, setShowParsed: (output: boolean) => void) => {
-        const appendShowMessage = (actionSetName: string, action: any) => {
-            output += `\n${actionSetName}: \n`;
-            output += `  Title: ${action.Title || '(No title)'}\n`;
-            output += `  Body: ${action.Message || '(No message)'}\n`;
-            output += `  Buttons: ${action.Buttons || '(No buttons)'}\n`;
-            output += `  Comments: ${action.Notes || '(No comments)'}\n`;
-        };
-        //@ts-ignore
-        extractActionSets();
-        const filteredActionSets = simplifiedActionSets.filter(actionSet => actionSet.Actions && actionSet.Actions.length > 0);
-
-
-        filteredActionSets.forEach(actionSet => {
-            //@ts-ignore
-            actionSet?.Actions?.forEach(action => {
-                if (action.Type === "Show Message") {
-                    appendShowMessage(actionSet.Name, action);
-                }
-
-                if (action.Type === "If...then") {
-                    const conditionalActionSet: ConditionalStatement = action;
-                    conditionalActionSet.ActionSetOnTrue?.Actions?.forEach(innerAction => {
-                        if (innerAction.Type === "Show Message") {
-                            appendShowMessage(`${actionSet.Name} (If True)`, innerAction);
-                        }
-                    });
-                    conditionalActionSet.ActionSetOnFalse?.Actions?.forEach(innerAction => {
-                        if (innerAction.Type === "Show Message") {
-                            appendShowMessage(`${actionSet.Name} (If False)`, innerAction);
-                        }
-                    });
-                }
-            });
-        });
-
-        setOutputBox(output);
-        setShowParsed(true);
-    };
-
-    const handleCSVGeneration = async () => {
-        // Generate CSV content
-        let screenName = `${designer?.Data?.screen?.name}\n`;
-        //@ts-ignore
-        const versionList = designer?.Data?.versionList as Record<string, string>; // Assuming versionList is an object
-        const values = Object.values(versionList);
-        const currentVersion = values.length > 0 ? values[values.length - 1] : null;
-        let csvContent = `Screen Name: ${designer?.Data?.screen?.name}\n`;
-        csvContent += currentVersion + '\n';
-        csvContent += "ActionSet,Title,Body,Buttons,Comments\n";
-
-        const addToCSV = (actionSetName: string, action: any) => {
-            const title = action.Title || '(No title)';
-            const body = action.Message || '(No message)';
-            const buttons = action.Buttons || '(No buttons)';
-            const comments = action.Notes || '(No comments)';
-            csvContent += `"${actionSetName}","${title}","${body}","${buttons}","${comments}"\n`;
-        };
-        extractActionSets();
-        const filteredActionSets = simplifiedActionSets.filter(actionSet => actionSet.Actions && actionSet.Actions.length > 0);
-
-        //@ts-ignore
-        filteredActionSets.forEach(actionSet => {
-            //@ts-ignore
-            actionSet?.Actions?.forEach(action => {
-                if (action.Type === "Show Message") {
-                    addToCSV(actionSet.Name, action);
-                }
-
-                if (action.Type === "If...then") {
-                    const conditionalActionSet: ConditionalStatement = action;
-                    conditionalActionSet.ActionSetOnTrue?.Actions?.forEach(innerAction => {
-                        if (innerAction.Type === "Show Message") {
-                            addToCSV(`${actionSet.Name}`, innerAction);
-                        }
-                    });
-                    conditionalActionSet.ActionSetOnFalse?.Actions?.forEach(innerAction => {
-                        if (innerAction.Type === "Show Message") {
-                            addToCSV(`${actionSet.Name}`, innerAction);
-                        }
-                    });
-                }
-            });
-        });
-
-        // Create a Blob from the CSV content
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        link.setAttribute('href', url);
-        link.setAttribute('download', screenName + ' ' + currentVersion + '.csv');
-
-        document.body.appendChild(link);
-        link.click(); // Trigger the download
-        document.body.removeChild(link); // Remove the link from the DOM
-    };
-
 
     return (
         <DesignerContext.Provider value={{
             designer,
             simplifiedActionSets,
-            setDesigner,
+            initializeDesigner,
             getWhereClauseOutput,
             getActionByType,
-            getControlName,
             parseActions,
             extractActionSets,
             isValidUUID,
-            getActionResultName,
             extractShowMessageActionSets,
-            handleMessageParsing,
-            handleCSVGeneration,
             getCallRoutineActionName,
             getActionOutput
         }}>

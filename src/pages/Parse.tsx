@@ -6,7 +6,7 @@ import { useDesigner } from '../providers/DesignerContext';
 import { handleMessageParsing, handleCSVGeneration, extractActionSetsForShow } from '../utils/utils';
 export default function Parse() {
   const [response] = useState(NewEditInvoice);
-  const { setDesigner, extractActionSets, parseActions} = useDesigner();
+  const {initializeDesigner, parseActions} = useDesigner();
   const [showParsed, setShowParsed] = useState(false);
   const [outputBox, setOutputBox] = useState<string>('');
   const [onlyShowMessages, setOnlyShowMessages] = useState(false);
@@ -18,7 +18,7 @@ export default function Parse() {
     const textAreaValue = (document.getElementById('oldScreenJson') as HTMLTextAreaElement).value;
     //@ts-ignore
     const newDesignerState = textAreaValue.trim() === '' ? NewEditInvoice : JSON.parse(textAreaValue);
-    setDesigner(newDesignerState);
+    initializeDesigner(newDesignerState);
     // Trigger parsing after state has been updated
     setShowParsed(true);
   };

@@ -22,7 +22,7 @@ export interface Binding {
 }
 
 export interface ResultToSet {
-    Source:             null;
+    Source:             Source;
     ActionResultId:     string;
     IsSharedResult:     boolean;
     ActionResultName:   string;

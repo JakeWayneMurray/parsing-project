@@ -51,8 +51,8 @@ import { SimplifiedDesigner } from '../interfaces/Designer';
 import { SimplifiedActionSet } from './ActionSet';
 
 export interface DesignerContextType {
-    designer: Designer | null;
-    setDesigner: React.Dispatch<React.SetStateAction<Designer | null>>;
+    designer: Designer | null | undefined;
+    initializeDesigner(designer: Designer | null): void;
     getWhereClauseOutput: (action: LoopThroughTable | DeleteRecordsFromTable | RetrieveValuesFromTable | PrepareForAccounting, indent: string) => string;
     getActionByType: (action: any) => 
         LoopThroughAttachments | 
@@ -105,12 +105,8 @@ export interface DesignerContextType {
     parseActions: () => string;
     extractActionSets: () => SimplifiedActionSet[];
     isValidUUID: (value: string | null | undefined | number) => boolean;
-    getActionResultName: (actionResultID: string | null | undefined | number) => string;
     extractShowMessageActionSets: () => SimplifiedActionSet[];
-    handleMessageParsing: (output: string, setOutputBox: (ouptut: string) => void, setShowParsed: (output: boolean) => void) => void;
-    handleCSVGeneration: () => void;
     simplifiedActionSets:  SimplifiedActionSet[] | null;
-    getControlName (controlID: string | null | undefined): string;
     getCallRoutineActionName(actionsetId: string): string;
     getActionOutput(action: any, indent: string): string;
 
