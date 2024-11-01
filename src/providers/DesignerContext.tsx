@@ -61,22 +61,13 @@ import { getViewFilterOutput } from '../utils/utils';
 const DesignerContext = createContext<DesignerContextType | undefined>(undefined);
 
 export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [designer, setDesigner] = useState<Designer | null>(null);
+    const [designer, setDesigner] = useState<Designer | null>();
     const [simplifiedActionSets, setSimplifiedActionSet] = useState<SimplifiedActionSet[]>([]); // Changed from SimplifiedActionSet | [] to SimplifiedActionSet[]
     const [controls, setControls] = useState<Record<string, string>>({});
     const [actionResults, setActionResults] = useState<Record<string, string>>({});
 
-    function initializeDesigner(newDesigner: Designer | null){
-        setDesigner(newDesigner);
-        if(newDesigner){
-        extractControlNames(newDesigner)
-        extractActionResults(newDesigner);
-        }
-        else{console.log('skipped as designer is null')}
-        console.log('completed');
-        console.log(controls)
-        console.log(actionResults)
-
+    async function initializeDesigner (newDesigner: Designer | null){
+        await setDesigner(newDesigner);
     }
 
 
@@ -549,13 +540,16 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
 
 
-    const parseActions = () => {
+    const parseActions = async (): Promise<string> => {
         let output = `Screen Name: ${designer?.Data?.screen?.name}\n`;
         output += `Modified By: ${designer?.Data?.screen?.modifiedBy}\n`;
         const currentVersionId = designer?.Data?.screen?.versionId;
         //@ts-ignore
         const currentVersion = designer?.Data?.versionList[currentVersionId];
         output += currentVersion + '\n';
+        await extractControlNames()
+        await extractActionResults();
+            console.log('completed');
 
         const foundActionSets = extractActionSets();
 
@@ -668,7 +662,7 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     };
 
     
-    const extractControlNames = (newDesigner: Designer | null) => {// Assu
+    const extractControlNames = async() => {
             const controls: Record<string, string> = {};
         
             function traverse(obj: any) {
@@ -682,7 +676,7 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                 }
             }
         
-            traverse(newDesigner);
+            traverse(designer);
             setControls(controls);
         }
 
@@ -703,7 +697,7 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
 
 
-function extractActionResults(newDesigner: Designer | null) {
+function extractActionResults() {
     const actionResultNames: Record<string, string> = {};
 
     //@ts-ignore
@@ -727,7 +721,7 @@ function extractActionResults(newDesigner: Designer | null) {
         });
     }
 
-    const actionSets = newDesigner?.Data.screen.actionSets as Record<string, any>;
+    const actionSets = designer?.Data.screen.actionSets as Record<string, any>;
     Object.values(actionSets).forEach(actionSet => {
         if (actionSet.Actions) traverseActions(actionSet.Actions);
         if(actionSet.Actions.ActionsOnTrue) traverseActions(actionSet.Actions.ActionsOnTrue);

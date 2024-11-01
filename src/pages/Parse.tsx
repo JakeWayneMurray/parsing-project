@@ -13,13 +13,15 @@ export default function Parse() {
   const [outputToCSV, setOutputToCSV] = useState(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const handleParseClick = () => {
+  const handleParseClick = async () => {
     setIsLoading(true);
     const textAreaValue = (document.getElementById('oldScreenJson') as HTMLTextAreaElement).value;
     //@ts-ignore
     const newDesignerState = textAreaValue.trim() === '' ? NewEditInvoice : JSON.parse(textAreaValue);
     initializeDesigner(newDesignerState);
     // Trigger parsing after state has been updated
+    const output = await parseActions();
+    setOutputBox(output);
     setShowParsed(true);
   };
   
@@ -62,21 +64,6 @@ export default function Parse() {
   const handleGoBackClick = () => {
     setShowParsed(false);
   }
-
-  
-
-  // Memoize parseActions to prevent unnecessary calls
-  const parseActionsCallBack = useCallback(() => {
-    if (showParsed) {
-        const output = parseActions();
-        setOutputBox(output);
-    }
-  }, [showParsed]); // Add showParsed as a dependency
-
-  // Add this useEffect to handle parsing when designer state changes
-  useEffect(() => {
-    parseActionsCallBack();
-  }, [showParsed]); // Remove parseActions from dependencies
 
   return (
     <div className="flex items-center justify-center h-screen w-screen px-4">

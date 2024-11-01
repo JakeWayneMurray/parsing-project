@@ -47,12 +47,11 @@ import { ShowMessage } from "../interfaces/Actions/ShowMessage";
 import { UpdateControlsOnScreen } from "../interfaces/Actions/UpdateControlsOnScreen";
 import { UpdateEditableGridReadOnlyProperty } from "../interfaces/Actions/UpdateEditableGridReadOnlyProperty";
 import { UpdateFieldsInTable } from "../interfaces/Actions/UpdateFieldsInTable";
-import { SimplifiedDesigner } from '../interfaces/Designer';
 import { SimplifiedActionSet } from './ActionSet';
 
 export interface DesignerContextType {
     designer: Designer | null | undefined;
-    initializeDesigner(designer: Designer | null): void;
+    initializeDesigner: (designer: Designer | null) => Promise<void>;
     getWhereClauseOutput: (action: LoopThroughTable | DeleteRecordsFromTable | RetrieveValuesFromTable | PrepareForAccounting, indent: string) => string;
     getActionByType: (action: any) => 
         LoopThroughAttachments | 
@@ -102,7 +101,7 @@ export interface DesignerContextType {
         UpdateEditableGridReadOnlyProperty | 
         UpdateFieldsInTable | 
         null;
-    parseActions: () => string;
+    parseActions: () => Promise<string>;
     extractActionSets: () => SimplifiedActionSet[];
     isValidUUID: (value: string | null | undefined | number) => boolean;
     extractShowMessageActionSets: () => SimplifiedActionSet[];
