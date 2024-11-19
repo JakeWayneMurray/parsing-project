@@ -34,7 +34,7 @@ import { MappingFunctions } from "../interfaces/Actions/MappingFunctions";
 import { MathFunctions } from "../interfaces/Actions/MathFunctions";
 import { MergeEntitiesContacts } from "../interfaces/Actions/MergeEntitiesContacts";
 import { PrepareForAccounting } from "../interfaces/Actions/PrepareForAccounting";
-import { ProcessPayment } from "../interfaces/Actions/ProcessPayment";
+import { ActionResult, ProcessPayment } from "../interfaces/Actions/ProcessPayment";
 import { RefreshControl } from "../interfaces/Actions/RefreshControl";
 import { RetrieveExchangeRate } from "../interfaces/Actions/RetrieveExchangeRate";
 import { RetrieveValueFromEmailGadget } from "../interfaces/Actions/RetrieveValueFromEmailGadget";
@@ -66,8 +66,8 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const [controls, setControls] = useState<Record<string, string>>({});
     const [actionResults, setActionResults] = useState<Record<string, string>>({});
 
-    async function initializeDesigner (newDesigner: Designer | null){
-        await setDesigner(newDesigner);
+    async function initializeDesigner(newDesigner: Designer | null): Promise<void> {
+        setDesigner(newDesigner)
     }
 
 
@@ -75,9 +75,8 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         let output = "Where ";
         let whereArray = action.WhereClause;
         whereArray.forEach(where => {
-            if(where.Source?.Value) output += actionResults[where.Source?.Value] + "\n" + indent;
+            if (where.Source?.Value) output += actionResults[where.Source?.Value] + "\n" + indent;
         });
-
         return output;
     }
 
@@ -231,12 +230,12 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
 
     function getActionOutput(action: any, indent: string): string {
-
         let output = indent;
         let typedAction;
         switch (action.Type) {
             case "Loop Through Attachments":
                 typedAction = action as LoopThroughAttachments;
+                output += "Table: " + typedAction.ViewNameFriendly + "\n"
                 output += "Metadata: " + typedAction.Metadata + "\n";
                 return output;
 
@@ -356,7 +355,7 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             //TODO: Get the AppId's     
             case "Check Permission":
                 typedAction = action as CheckPermission;
-                output += typedAction.AppId + PermissionTypes[typedAction.Permission] + " permission for " + typedAction.User?.Value + "\n";
+                output += "app unknown " + PermissionTypes[typedAction.Permission] + " permission for " + typedAction.User?.Value + "\n";
                 output += "comments: " + typedAction.Notes + "\n";
                 return output;
 
@@ -464,7 +463,7 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             case "Retrieve Value From Email Gadget":
                 typedAction = action as RetrieveValueFromEmailGadget;
                 typedAction.Bindings.forEach((binding) => {
-                    if(binding.ControlToUpdate) output += binding.ValueName + " -> " + (binding.UpdateControl ? controls[binding.ControlToUpdate] : binding.ResultToSet.ActionResultName) + "\n";
+                    if (binding.ControlToUpdate) output += binding.ValueName + " -> " + (binding.UpdateControl ? controls[binding.ControlToUpdate] : binding.ResultToSet.ActionResultName) + "\n";
                 })
                 return output;
             case "Retrive Values From Table":
@@ -472,7 +471,7 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                 output += "Table: " + typedAction.ViewNameFriendly + "\n";
                 output += getWhereClauseOutput(typedAction, indent);
                 typedAction.Bindings.forEach((binding) => {
-                    if(binding.ControlToUpdate) output += binding.FieldName + " -> " + (binding.UpdateControl ? controls[binding.ControlToUpdate] : binding.ResultToSet.ActionResultName) + "\n";
+                    if (binding.ControlToUpdate) output += binding.FieldName + " -> " + (binding.UpdateControl ? controls[binding.ControlToUpdate] : binding.ResultToSet.ActionResultName) + "\n";
                 })
                 return output;
 
@@ -547,9 +546,12 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         //@ts-ignore
         const currentVersion = designer?.Data?.versionList[currentVersionId];
         output += currentVersion + '\n';
-        await extractControlNames()
+        if(!designer) {return 'press the button again';}
+        await extractControlNames();
         await extractActionResults();
-            console.log('completed');
+
+        console.log(actionResults);
+        console.log(controls);
 
         const foundActionSets = extractActionSets();
 
@@ -661,24 +663,24 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         return results;
     };
 
-    
-    const extractControlNames = async() => {
-            const controls: Record<string, string> = {};
-        
-            function traverse(obj: any) {
-                if (Array.isArray(obj)) {
-                    obj.forEach(item => traverse(item));
-                } else if (typeof obj === 'object' && obj !== null) {
-                    if (obj.hasOwnProperty('id') && obj.hasOwnProperty('name')) {
-                        controls[obj.id] = obj.name;
-                    }
-                    Object.values(obj).forEach(value => traverse(value));
+
+    const extractControlNames = async () => {
+        const controls: Record<string, string> = {};
+
+        function traverse(obj: any) {
+            if (Array.isArray(obj)) {
+                obj.forEach(item => traverse(item));
+            } else if (typeof obj === 'object' && obj !== null) {
+                if (obj.hasOwnProperty('id') && obj.hasOwnProperty('name')) {
+                    controls[obj.id] = obj.name;
                 }
+                Object.values(obj).forEach(value => traverse(value));
             }
-        
-            traverse(designer);
-            setControls(controls);
         }
+
+        traverse(designer);
+        setControls(controls);
+    }
 
     const isValidUUID = (value: string | null | undefined | number): boolean => {
         // Check if value is null, undefined, or a number
@@ -697,40 +699,41 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
 
 
-function extractActionResults() {
-    const actionResultNames: Record<string, string> = {};
+    function extractActionResults() {
+        const actionResultNames: Record<string, string> = {};
 
-    //@ts-ignore
-    function traverseActions(actions) {
-    //@ts-ignore
-        actions.forEach(action => {
-            // Check if the action has the expected properties
-            if (action.ActionResultName && action.Source) {
-                actionResultNames[action.Source.Value] = action.ActionResultName;
-            }
+        //@ts-ignore
+        function traverseActions(actions) {
+            //@ts-ignore
+            actions.forEach(action => {
+                // Check if the action has the expected properties
+                if (action.ActionResultName && action.Source) {
+                    const typedAction = action as ActionResult;
+                    actionResultNames[typedAction.ActionResultId] = action.ActionResultName;
+                }
 
-            // Handle nested actions if they exist
-            if (action.AssignValueToActions) {
-                traverseActions(action.AssignValueToActions);
-            }
+                // Handle nested actions if they exist
+                if (action.AssignValueToActions) {
+                    traverseActions(action.AssignValueToActions);
+                }
 
-            // Check for other potential nested structures
-            if (action.Actions) {
-                traverseActions(action.Actions);
-            }
+                // Check for other potential nested structures
+                if (action.Actions) {
+                    traverseActions(action.Actions);
+                }
+            });
+        }
+
+        const actionSets = designer?.Data.screen.actionSets as Record<string, any>;
+        Object.values(actionSets).forEach(actionSet => {
+            if (actionSet.Actions) traverseActions(actionSet.Actions);
+            if (actionSet.Actions.ActionsOnTrue) traverseActions(actionSet.Actions.ActionsOnTrue);
+            if (actionSet.Actions.ActionsOnFalse) traverseActions(actionSet.Actions.ActionsOnFalse);
+
         });
+
+        setActionResults(actionResultNames);
     }
-
-    const actionSets = designer?.Data.screen.actionSets as Record<string, any>;
-    Object.values(actionSets).forEach(actionSet => {
-        if (actionSet.Actions) traverseActions(actionSet.Actions);
-        if(actionSet.Actions.ActionsOnTrue) traverseActions(actionSet.Actions.ActionsOnTrue);
-        if(actionSet.Actions.ActionsOnFalse) traverseActions(actionSet.Actions.ActionsOnFalse);
-        
-    });
-
-    setActionResults(actionResultNames);
-}
 
     const extractShowMessageActionSets = (): SimplifiedActionSet[] => {
         const results: SimplifiedActionSet[] = [];

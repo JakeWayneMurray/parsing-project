@@ -1,12 +1,15 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import { NewEditInvoice } from '../assets/NewEditInvoices';
 import SecondaryButton from '../components/SecondaryButton';
 import Checkbox from '../components/Checkbox';
 import { useDesigner } from '../providers/DesignerContext';
 import { handleMessageParsing, handleCSVGeneration, extractActionSetsForShow } from '../utils/utils';
+
+
+
 export default function Parse() {
   const [response] = useState(NewEditInvoice);
-  const {initializeDesigner, parseActions} = useDesigner();
+  const {initializeDesigner, parseActions, designer} = useDesigner();
   const [showParsed, setShowParsed] = useState(false);
   const [outputBox, setOutputBox] = useState<string>('');
   const [onlyShowMessages, setOnlyShowMessages] = useState(false);
@@ -18,28 +21,27 @@ export default function Parse() {
     const textAreaValue = (document.getElementById('oldScreenJson') as HTMLTextAreaElement).value;
     //@ts-ignore
     const newDesignerState = textAreaValue.trim() === '' ? NewEditInvoice : JSON.parse(textAreaValue);
-    initializeDesigner(newDesignerState);
+    await initializeDesigner(newDesignerState);
+    if (!designer){
+      alert('designer is null')
+    }
     // Trigger parsing after state has been updated
     const output = await parseActions();
     setOutputBox(output);
     setShowParsed(true);
+    setIsLoading(false);
   };
   
   const handleShowMessageParseClick = () => {
     const unparsedAreaValue = (document.getElementById('oldScreenJson') as HTMLTextAreaElement).value;
-
     const textAreaValue = JSON.parse((document.getElementById('oldScreenJson') as HTMLTextAreaElement).value);
     let output = `Screen Name: ${response?.Data?.screen?.name}\n`;
     output += `Modified By: ${response?.Data?.screen?.modifiedBy}\n`;
-
     const textAreaActionSets = extractActionSetsForShow(textAreaValue);
     let foundActionSets = extractActionSetsForShow(response);
-
     if (unparsedAreaValue.trim() !== '') {
       foundActionSets = textAreaActionSets;
     }
-
-
     if (!outputToCSV) {
         // Call the function to handle message parsing
         handleMessageParsing(foundActionSets, output, setOutputBox, setShowParsed);
