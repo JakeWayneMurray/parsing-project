@@ -1,7 +1,10 @@
 export const PermissionTypes: string[] = [
-    "blank",
     "Access",
-    "Manage",
+    "blank",
+    "Edit",
+    "blank",
     "Delete",
-    "Edit"
+    "blank",
+    "blank",
+    "Manage",
 ];
