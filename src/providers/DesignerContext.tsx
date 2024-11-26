@@ -3,7 +3,7 @@ import { LoopThroughAttachments } from "../interfaces/Actions/LoopThroughAttachm
 import { LoopThroughGrid } from "../interfaces/Actions/LoopThroughGrid";
 import { Designer, Expression } from '../interfaces/Designer';
 import { SimplifiedActionSet } from '../interfaces/ActionSet';
-import { LoopThroughTable } from '../interfaces/Actions/LoopThroughTable';
+import { LoopThroughTable, WhereClause } from '../interfaces/Actions/LoopThroughTable';
 import { AddAttachmentToRecordID } from "../interfaces/Actions/AddAttachmentToRecordID";
 import { AssignValueToActionResult, AssignValueToActions } from "../interfaces/Actions/AssignValueToActionResult";
 import { CallWebService } from "../interfaces/Actions/CallWebService";
@@ -69,18 +69,17 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     async function initializeDesigner(newDesigner: Designer | null): Promise<void> {
         setDesigner(newDesigner)
     }
+    const getSourceValue = (value: any) => {
+        let output = ""
+        if(!value) return "null"
+        output += actionResults[value] ? actionResults[value] : (controls[value] ? controls[value] : value);
+        return output; 
+    }
 
-    function getConditionalOutput(action: ConditionalStatement, indent: string): string {
-        const getSourceValue = (value: any) => {
-            let output = ""
-            if(!value) return "null"
-            output += actionResults[value] ? actionResults[value] : (controls[value] ? controls[value] : value);
-            return output; 
-        }
-        
+    function getConditionalOutput(expressions: Expression[], indent: string): string {
         let output = "";
 
-        action.ExpressionList.forEach((e : Expression) => {
+        expressions.forEach((e : Expression) => {
             const operation = e.Operation;
             switch(operation){
                 case 0: output += indent + "If "; break;
@@ -94,16 +93,21 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         return output;
     }
 
-
     function getWhereClauseOutput(action: LoopThroughTable | DeleteRecordsFromTable | RetrieveValuesFromTable | PrepareForAccounting, indent: string): string {
-        let output = "Where ";
-        let whereArray = action.WhereClause;
-        whereArray.forEach(where => {
-            if (where.Source?.Value) output += "\t" + actionResults[where.Source?.Value] + "\n" + indent;
+        let output = "";
+        action.WhereClause.forEach((w : any) => {
+            const operation = w.Operation;
+            switch(operation){
+                case 0: output += indent + "If "; break;
+                case 1: output += "\n"; break;
+                case 2: output += indent + "\nAND\n"; break;
+                case 3: output += indent + "\nOR\n"; break;
+                case null: output += getSourceValue(w.Source?.Value); break;
+                default: output += " " + getConditionalType(operation) + " ";
+            }
         });
         return output;
     }
-
 
 
     function getActionByType(action: any):
@@ -385,7 +389,7 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
             case "If...then":
                 typedAction = action as ConditionalStatement;
-                output += "\t" + getConditionalOutput(typedAction, indent) + "\n";
+                output += "\t" + getConditionalOutput(typedAction.ExpressionList, indent) + "\n";
                 return output;
 
             case "Create Short Method URL":
@@ -456,7 +460,7 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             case "Prepare For Accounting":
                 typedAction = action as PrepareForAccounting;
                 output += "\t" + typedAction.ViewNameFriendly + "\n";
-                output += "\t" + getWhereClauseOutput(typedAction, indent) + "\n";
+                output += "\t" + getConditionalOutput(typedAction.WhereClause, indent) + "\n";
                 output += "\tOverride sync: " + (typedAction.SyncOverride ? "true" : "false") + "\n";
                 return output;
 
@@ -537,7 +541,7 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             case "Update Controls On Screen":
                 typedAction = action as UpdateControlsOnScreen;
                 typedAction.ControlsToUpdate.forEach((control) => {
-                    output += "\t" + controls[control.ControlId] + " -> " + actionResults[control.Source.Value] + "\n";
+                    output += "\t" + controls[control.ControlId] + " -> " + actionResults[action?.Source?.Value] + "\n";
                 })
                 return output;
 
