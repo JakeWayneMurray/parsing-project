@@ -1,9 +1,12 @@
-export function getConditinoalType(value: number | null): string{
+export function getConditionalType(value: number | null): string{
     if(!value) return "ERROR";
     return ConditionTypes[value];
 }
 
 export const ConditionTypes: string[] = [
+    "blank",
+    "blank",
+    "blank",
     "blank",
     "Is Equal",
     "Is Not Equal",
@@ -20,6 +23,7 @@ export const ConditionTypes: string[] = [
     "Ends With",
     "In List",
     "Not In List",
+    "blank",
     "Is True",
     "Is False"
 ];

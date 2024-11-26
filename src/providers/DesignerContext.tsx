@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState } from 'react';
 import { LoopThroughAttachments } from "../interfaces/Actions/LoopThroughAttachments";
 import { LoopThroughGrid } from "../interfaces/Actions/LoopThroughGrid";
-import { Designer } from '../interfaces/Designer';
+import { Designer, Expression } from '../interfaces/Designer';
 import { SimplifiedActionSet } from '../interfaces/ActionSet';
 import { LoopThroughTable } from '../interfaces/Actions/LoopThroughTable';
 import { AddAttachmentToRecordID } from "../interfaces/Actions/AddAttachmentToRecordID";
@@ -50,8 +50,8 @@ import { UpdateFieldsInTable } from "../interfaces/Actions/UpdateFieldsInTable";
 import { DesignerContextType } from '../interfaces/DesignerContextInterface';
 import { TextFunctionType } from '../constants/textFunctionTypes';
 import { PermissionTypes } from '../constants/permission';
-import { getConditinoalType } from '../constants/conditionals';
-import { DateFunctiontypes } from '../constants/dateFunctionTypes';
+import { getConditionalType } from '../constants/conditionals';
+import { DateFunctionTypes } from '../constants/dateFunctionTypes';
 import { ReportTypes } from '../constants/reportType';
 import { MathFunctionTypes, MathFunctionExpressions } from '../constants/mathFunctionTypes';
 import { ProcessPaymentTypes } from '../constants/processPaymentTypes';
@@ -68,6 +68,30 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     async function initializeDesigner(newDesigner: Designer | null): Promise<void> {
         setDesigner(newDesigner)
+    }
+
+    function getConditionalOutput(action: ConditionalStatement, indent: string): string {
+        const getSourceValue = (value: any) => {
+            let output = ""
+            if(!value) return "null"
+            output += actionResults[value] ? actionResults[value] : (controls[value] ? controls[value] : value);
+            return output; 
+        }
+        
+        let output = "";
+
+        action.ExpressionList.forEach((e : Expression) => {
+            const operation = e.Operation;
+            switch(operation){
+                case 0: output += indent + "If "; break;
+                case 1: output += "\n"; break;
+                case 2: output += indent + "\nAND\n"; break;
+                case 3: output += indent + "\nOR\n"; break;
+                case null: output += getSourceValue(e.Source?.Value); break;
+                default: output += " " + getConditionalType(operation) + " ";
+            }
+        });
+        return output;
     }
 
 
@@ -260,7 +284,7 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                 typedAction = action as AssignValueToActionResult;
                 typedAction.AssignValueToActions.forEach((assignValue: AssignValueToActions) => {
                     const sourceValue = isValidUUID(assignValue.Source?.Value) ? actionResults[assignValue.Source?.Value] : assignValue.Source?.Value;
-                    output += `\t${sourceValue} -> ${action.ActionResultName}\n`;
+                    output += `\t${sourceValue} -> ${assignValue.ActionResultName}\n`;
                 });
                 return output;
 
@@ -361,9 +385,7 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
             case "If...then":
                 typedAction = action as ConditionalStatement;
-                typedAction.ExpressionList.forEach((expression) => {
-                    output += "\tif " + expression.Source?.Value + " " + getConditinoalType(expression.Operation) + " " + action.ActionResultName + "\n";
-                })
+                output += "\t" + getConditionalOutput(typedAction, indent) + "\n";
                 return output;
 
             case "Create Short Method URL":
@@ -375,7 +397,7 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             //TODO: Expand the functionality  
             case "Date Functions":
                 typedAction = action as DateFunctions;
-                output += "\t" + DateFunctiontypes[typedAction.DateFunctionType] + "-> \n";
+                output += "\t" + DateFunctionTypes[typedAction.DateFunctionType] + "-> \n";
                 return output;
 
             case "Delete Records From Table":
@@ -541,6 +563,7 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
 
     const parseActions = async (): Promise<string> => {
+        console.log("Parsing actions...");
         let output = `Screen Name: ${designer?.Data?.screen?.name}\n`;
         output += `Modified By: ${designer?.Data?.screen?.modifiedBy}\n`;
         const currentVersionId = designer?.Data?.screen?.versionId;
@@ -616,6 +639,7 @@ export const DesignerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         };
 
         Object.values(foundActionSets).forEach(actionSet => {
+            console.log("Processing action set:", actionSet);
             const actionSetWName = foundActionSets.find(a => a.ActionSetId === actionSet.ActionSetId);
             if (actionSetWName) {
                 processActionSet(actionSetWName, ''); // Start processing with no indentation

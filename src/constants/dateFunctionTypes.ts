@@ -1,4 +1,4 @@
-export const DateFunctiontypes: string[] = [
+export const DateFunctionTypes: string[] = [
     "blank",
     "Format Date",
     "Year",

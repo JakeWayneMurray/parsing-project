@@ -2,13 +2,14 @@ import React, { useState } from 'react';
 import { NewEditInvoice } from '../assets/NewEditInvoices';
 import SecondaryButton from '../components/SecondaryButton';
 import Checkbox from '../components/Checkbox';
+import { ConstantTesting } from '../assets/ContstantTesting';
 import { useDesigner } from '../providers/DesignerContext';
 import { handleMessageParsing, handleCSVGeneration, extractActionSetsForShow } from '../utils/utils';
 
 
 
 export default function Parse() {
-  const [response] = useState(NewEditInvoice);
+  const [response] = useState(ConstantTesting);
   const {initializeDesigner, parseActions, designer} = useDesigner();
   const [showParsed, setShowParsed] = useState(false);
   const [outputBox, setOutputBox] = useState<string>('');
@@ -20,8 +21,7 @@ export default function Parse() {
     setIsLoading(true);
     const textAreaValue = (document.getElementById('oldScreenJson') as HTMLTextAreaElement).value;
     //@ts-ignore
-    const newDesignerState = textAreaValue.trim() === '' ? NewEditInvoice : JSON.parse(textAreaValue);
-    await initializeDesigner(newDesignerState);
+    await initializeDesigner(textAreaValue.trim() === '' ? ConstantTesting : JSON.parse(textAreaValue));
     if (!designer){
       alert('designer is null')
     }
